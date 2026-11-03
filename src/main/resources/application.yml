@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: accounts-service
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/accounts}
+    username: accounts_app
+    password: ${ACCOUNTS_APP_PASSWORD:accounts_app_dev}
+    hikari:
+      maximum-pool-size: 20
+  flyway:
+    user: accounts_owner
+    password: ${ACCOUNTS_OWNER_PASSWORD:accounts_owner_dev}
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 200MB
+
+cbmm:
+  seed:
+    path: classpath:seed/accounts.json
+  currencies: MXN,USD
+  accounts:
+    auto-create: false
+  processing:
+    max-concurrency: 16
+  upload:
+    max-events-per-load: 1000000

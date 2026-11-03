@@ -8,4 +8,4 @@ paths:
 - Reglas 1 y 2 de §7.2 se validan aquí; el traductor (capa anticorrupción) produce el comando `PostSettlement`.
 - REST: `POST /v1/event-files` (multipart `files`), `GET /v1/accounts/{id}/balance`, `GET /v1/accounts/{id}/transactions?limit&offset` (limit ≤ 1000).
 - Montos en la salida: texto con exactamente 2 decimales, sin separador de miles. Errores con códigos de §8.2.
-- Un adaptador no depende de otro adaptador (§11).
+- Un adaptador no depende de otro adaptador (§11), con una sola excepción: `adapters.in.rest` puede usar `adapters.in.file`.

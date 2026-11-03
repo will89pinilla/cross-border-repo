@@ -263,7 +263,7 @@ Al arrancar, el módulo lee `cbmm.seed.path` (por defecto `classpath:seed/accoun
 ```
 
 - Por cada moneda de `cbmm.currencies` se crean `COBRE_FX_POSITION_<moneda>` y `COBRE_FUNDING_<moneda>` si no existen.
-- Por cada cuenta de la semilla que no existe: se crea como `CLIENT` y, si `initial_balance` es mayor que 0, se registra un asiento de apertura con `source_event_id = opening_<account_id>`: débito en `COBRE_FUNDING_<moneda>` y crédito en la cuenta (D9).
+- Por cada cuenta de la semilla que no existe: se crea como `CLIENT` y, si `initial_balance` es mayor que 0, se registra un asiento de apertura con `source_event_id = opening_<account_id>`: débito en `COBRE_FUNDING_<moneda>` y crédito en la cuenta (D9). Los asientos de apertura no generan SettlementDecision, porque no son eventos CBMM.
 - Una cuenta que ya existe no se modifica. Volver a arrancar no duplica nada.
 - `status` acepta `ACTIVE`, `BLOCKED` y `CLOSED`.
 - Para empezar de cero se borra el volumen de la base (`docker compose down -v`); no existe un endpoint que borre datos (D13).
@@ -456,13 +456,13 @@ Migración Flyway `V1__accounts_schema.sql`:
 
 | Tabla | Columnas | Restricciones |
 | --- | --- | --- |
-| `account` | `account_id` varchar(64), `currency` char(3), `type`, `status`, `balance` numeric(19,2), `created_at` | PK `account_id`. `balance` no nulo y ≥ 0 en `CLIENT`; nulo en cuentas de Cobre (D10) |
-| `settlement_decision` | `source_event_id` varchar(128), `decision`, `reason_code`, `reason_detail`, `entry_id`, `payload_hash`, `load_id`, `decided_at` | PK `source_event_id`. `entry_id` obligatorio si `APPLIED`; `reason_code` obligatorio si `REJECTED` |
+| `account` | `account_id` varchar(64), `currency` char(3), `type`, `status`, `balance` numeric(19,2), `created_at` | PK account_id; UNIQUE (account_id, currency), que respalda la FK de entry_line. `balance` no nulo y ≥ 0 en `CLIENT`; nulo en cuentas de Cobre (D10) |
+| `settlement_decision` | `source_event_id` varchar(128), `decision`, `reason_code`, `reason_detail` varchar(64), `entry_id`, `payload_hash` varchar(128), `load_id`, `decided_at` | PK `source_event_id`. `APPLIED` exige `entry_id` y `reason_code` nulo; `REJECTED` exige `reason_code` y `entry_id` nulo; `entry_id` único (un asiento, una decisión); payload_hash y load_id NOT NULL (las aperturas no generan decisión, §6.3). `reason_detail` guarda códigos cortos de §7.2; `payload_hash` admite SHA-256 o SHA-512 en hexadecimal (el algoritmo se fija en T05) |
 | `journal_entry` | `entry_id` uuid, `source_event_id`, `posted_at`, `recorded_at` | PK `entry_id`; `source_event_id` único |
-| `entry_line` | `entry_id`, `line_no` smallint, `account_id`, `direction`, `amount` numeric(19,2), `currency` char(3), `posted_at` | PK `(entry_id, line_no)`; `amount > 0`; índice `(account_id, posted_at, entry_id)` |
+| `entry_line` | `entry_id`, `line_no` smallint, `account_id`, `direction`, `amount` numeric(19,2), `currency` char(3), `posted_at` | PK `(entry_id, line_no)`; `amount > 0`; índice `(account_id, posted_at, entry_id)` ; FK (account_id, currency) → account(account_id, currency): la moneda de cada línea es la de su cuenta (§3.4) |
 
 - Saldo de una cuenta de Cobre: suma de sus líneas, con `CREDIT` positivo y `DEBIT` negativo.
-- Roles: Flyway corre como `accounts_owner`. La aplicación se conecta como `accounts_app`, con SELECT, INSERT y UPDATE sobre `account`, y solo SELECT e INSERT sobre `settlement_decision`, `journal_entry` y `entry_line` (D13).
+- Roles: Flyway corre como `accounts_owner`. La aplicación se conecta como `accounts_app`, con SELECT e INSERT sobre `account` y UPDATE solo sobre su columna `balance` (tipo, moneda y estado no cambian, §3.4), y solo SELECT e INSERT sobre `settlement_decision`, `journal_entry` y `entry_line` (D13).
 
 ## 10. Criterios de aceptación
 
@@ -537,7 +537,7 @@ accounts-service/
 ```
 
 - La transacción la abre la aplicación a través del puerto `UnitOfWork`; su adaptador usa `TransactionTemplate` y aplica los reintentos de la sección 7.3.
-- Reglas ArchUnit: `domain` no depende de `org.springframework`, `java.sql` ni `com.cobre.accounts.adapters`; `application` no depende de `adapters` ni de Spring; un adaptador no depende de otro adaptador.
+- Reglas ArchUnit: `domain` no depende de `org.springframework`, `java.sql`, `javax.sql` ni `com.cobre.accounts.adapters`; `application` no depende de `adapters` ni de Spring; un adaptador no depende de otro adaptador, con una sola excepción: adapters.in.rest puede usar adapters.in.file, porque el controlador entrega los archivos al lector (§3.3).
 
 Configuración:
 

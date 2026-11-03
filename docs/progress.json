@@ -1,7 +1,7 @@
 {
   "deadline": "2026-11-05T08:00:00-05:00",
-  "next": "T01",
-  "last_session": "Harness v1 creado; spec §11 actualizada (Spring Boot 4.1.2, Gradle 9.7.0, ArchUnit 1.5.0, sin jqwik). Aún sin código.",
+  "next": "T02",
+  "last_session": "2026-11-03: T01 cerrada. Build verde (17 tests). Siguiente: T02 dominio; recordar rechazo de escala > 2 en Money (numeric redondea).",
   "pending_decisions": [],
   "tasks": [
     {
@@ -13,9 +13,9 @@
       "depends_on": [],
       "priority": "must",
       "block": "mar 3 noche",
-      "status": "todo",
-      "passes": false,
-      "notes": ""
+      "status": "done",
+      "passes": true,
+      "notes": "AC18 en verde (14 casos, PG18 real); ArchUnit con allowEmptyShould hasta T04; GRANT UPDATE solo en account.balance."
     },
     {
       "id": "T02",
@@ -30,7 +30,7 @@
       "block": "mar 3 noche",
       "status": "todo",
       "passes": false,
-      "notes": ""
+      "notes": "numeric(19,2) redondea en silencio (10.005 -> 10.01): Money rechaza escala > 2 (D11), la base no protege."
     },
     {
       "id": "T03",
@@ -47,7 +47,7 @@
       "block": "mié 4 mañana",
       "status": "todo",
       "passes": false,
-      "notes": ""
+      "notes": "numeric(19,2) redondea en silencio: el lector rechaza > 2 decimales (TOO_MANY_DECIMALS) antes de llegar a la base; test con 10.005."
     },
     {
       "id": "T04",
@@ -63,7 +63,7 @@
       "block": "mié 4 mañana",
       "status": "todo",
       "passes": false,
-      "notes": ""
+      "notes": "Antes de /close-task: el humano quita allowEmptyShould de ArchitectureTest"
     },
     {
       "id": "T05",

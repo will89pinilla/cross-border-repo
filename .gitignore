@@ -1,7 +1,7 @@
 # Build
-build/
+/build/
 .gradle/
-out/
+/out/
 *.class
 
 # IDE

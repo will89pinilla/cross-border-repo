@@ -1,0 +1,25 @@
+# Local infrastructure. `docker compose down -v` wipes the data (only the human runs it).
+# The accounts-service container is added in a later task (spec §11, §13).
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: accounts
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_dev}
+      ACCOUNTS_OWNER_PASSWORD: ${ACCOUNTS_OWNER_PASSWORD:-accounts_owner_dev}
+      ACCOUNTS_APP_PASSWORD: ${ACCOUNTS_APP_PASSWORD:-accounts_app_dev}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+      # PostgreSQL 18 images keep PGDATA under /var/lib/postgresql/18/docker.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d accounts"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:
