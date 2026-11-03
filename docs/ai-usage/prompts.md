@@ -1,0 +1,1 @@
+# Registro de prompts (automático)

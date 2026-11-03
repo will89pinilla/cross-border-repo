@@ -1,0 +1,169 @@
+{
+  "deadline": "2026-11-05T08:00:00-05:00",
+  "next": "T01",
+  "last_session": "Harness v1 creado; spec §11 actualizada (Spring Boot 4.1.2, Gradle 9.7.0, ArchUnit 1.5.0, sin jqwik). Aún sin código.",
+  "pending_decisions": [],
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "Proyecto Gradle, version catalog, Docker Compose con PostgreSQL, migración V1, roles y test ArchUnit vacío",
+      "criteria": [
+        "AC18"
+      ],
+      "depends_on": [],
+      "priority": "must",
+      "block": "mar 3 noche",
+      "status": "todo",
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "T02",
+      "title": "Dominio: Money, Account, JournalEntry, SettlementDecision, PostingService y tests",
+      "criteria": [
+        "§3.4"
+      ],
+      "depends_on": [
+        "T01"
+      ],
+      "priority": "must",
+      "block": "mar 3 noche",
+      "status": "todo",
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "T03",
+      "title": "Lector de archivos (3 formatos), validaciones 1 y 2, traductor a PostSettlement",
+      "criteria": [
+        "AC08",
+        "AC09",
+        "AC13"
+      ],
+      "depends_on": [
+        "T02"
+      ],
+      "priority": "must",
+      "block": "mié 4 mañana",
+      "status": "todo",
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "T04",
+      "title": "Persistencia, UnitOfWork con reintentos y carga de la semilla",
+      "criteria": [
+        "AC18"
+      ],
+      "depends_on": [
+        "T01",
+        "T02"
+      ],
+      "priority": "must",
+      "block": "mié 4 mañana",
+      "status": "todo",
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "T05",
+      "title": "PostSettlement de un evento: decisión, locks, validaciones 3 a 6 y asiento",
+      "criteria": [
+        "AC01",
+        "AC02",
+        "AC05",
+        "AC06",
+        "AC07",
+        "AC15"
+      ],
+      "depends_on": [
+        "T03",
+        "T04"
+      ],
+      "priority": "must",
+      "block": "mié 4 tarde",
+      "status": "todo",
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "T06",
+      "title": "Carga: orden, duplicados, scheduler de dependencias y bloqueo de cargas",
+      "criteria": [
+        "AC03",
+        "AC04",
+        "AC10",
+        "AC11",
+        "AC16",
+        "AC17"
+      ],
+      "depends_on": [
+        "T05"
+      ],
+      "priority": "must",
+      "block": "mié 4 tarde",
+      "status": "todo",
+      "passes": false,
+      "notes": "La más riesgosa: empieza con el scheduler en secuencial y luego paraleliza."
+    },
+    {
+      "id": "T07",
+      "title": "API REST, reporte y Swagger",
+      "criteria": [
+        "AC14"
+      ],
+      "depends_on": [
+        "T06"
+      ],
+      "priority": "must",
+      "block": "mié 4 noche",
+      "status": "todo",
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "T08",
+      "title": "Generador F07, oráculo secuencial, test de propiedades y benchmark",
+      "criteria": [
+        "AC11",
+        "AC12"
+      ],
+      "depends_on": [
+        "T06"
+      ],
+      "priority": "should",
+      "block": "mié 4 noche",
+      "status": "todo",
+      "passes": false,
+      "notes": "Si falta tiempo: oráculo + AC11/AC12 sí; benchmark con menos eventos."
+    },
+    {
+      "id": "T09",
+      "title": "Métricas, logs JSON y health",
+      "criteria": [
+        "§11 observabilidad"
+      ],
+      "depends_on": [
+        "T07"
+      ],
+      "priority": "should",
+      "block": "jue 5 madrugada",
+      "status": "todo",
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "T10",
+      "title": "README con guion de demo y registro de uso de IA",
+      "criteria": [],
+      "depends_on": [
+        "T07"
+      ],
+      "priority": "must",
+      "block": "jue 5 madrugada",
+      "status": "todo",
+      "passes": false,
+      "notes": "Último push antes de 07:30."
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+# Build
+build/
+.gradle/
+out/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Secretos y configuración personal
+.env
+.env.*
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Sistema
+.DS_Store
