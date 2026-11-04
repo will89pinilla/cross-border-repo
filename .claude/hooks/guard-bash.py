@@ -12,7 +12,7 @@ import sys
 cmd = json.load(sys.stdin).get("tool_input", {}).get("command", "")
 
 TARGETS = re.compile(r"(^|[\s'\"=/.])(src/|docs/(spec|design|challenge)/|\.claude/|CLAUDE\.md|"
-                     r"build\.gradle\.kts|settings\.gradle\.kts|libs\.versions\.toml|docker-compose\.yml)")
+                     r"build\.gradle\.kts|settings\.gradle\.kts|libs\.versions\.toml|docker-compose\.yml|docs/progress\.json)")
 REDIRECT = re.compile(r"(?<![0-9&])>>?\s*([^\s;&|]+)")
 TEE = re.compile(r"\btee\s+(?:-a\s+)?([^\s;&|]+)")
 INPLACE = re.compile(r"\b(sed|perl)\s+-[a-zA-Z]*i|\b(cp|mv|rm|truncate|install|ln)\s")
