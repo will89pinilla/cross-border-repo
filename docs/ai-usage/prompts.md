@@ -358,3 +358,9 @@ Adelante: test primero y ./gradlew build al final.
 ```text
 /close-task
 ```
+
+### 2026-11-04 10:12 · -
+
+```text
+! git add docs/ && git commit -m "docs: notas manuales de T04; spec §6.3 ids ASCII en la semilla" && git push
+```
