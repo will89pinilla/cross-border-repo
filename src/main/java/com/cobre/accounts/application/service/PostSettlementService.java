@@ -11,6 +11,7 @@ import com.cobre.accounts.application.port.out.DecisionAlreadyExistsException;
 import com.cobre.accounts.application.port.out.DomainEventPublisher;
 import com.cobre.accounts.application.port.out.JournalRepository;
 import com.cobre.accounts.application.port.out.SettlementDecisionRepository;
+import com.cobre.accounts.application.port.out.StoredDecision;
 import com.cobre.accounts.application.port.out.UnitOfWork;
 import com.cobre.accounts.domain.event.EntriesPosted;
 import com.cobre.accounts.domain.event.PostingRejected;
@@ -84,9 +85,9 @@ public final class PostSettlementService implements PostSettlementUseCase {
         try {
             outcome = unitOfWork.inTransaction(() -> decide(event, loadId));
         } catch (DecisionAlreadyExistsException e) {
-            SettlementDecision winner = decisions.find(event.eventId()).orElseThrow(() -> new IllegalStateException(
+            StoredDecision winner = decisions.find(event.eventId()).orElseThrow(() -> new IllegalStateException(
                     "Event " + event.eventId() + " conflicted with a decision that is not visible", e));
-            return new Duplicate(winner);
+            return new Duplicate(winner.decision(), winner.payloadHash());
         }
         publishAfterCommit(event.eventId(), outcome);
         return outcome;
@@ -97,7 +98,7 @@ public final class PostSettlementService implements PostSettlementUseCase {
         // Step 1.
         var existing = decisions.find(eventId);
         if (existing.isPresent()) {
-            return new Duplicate(existing.get());
+            return new Duplicate(existing.get().decision(), existing.get().payloadHash());
         }
         // Step 2.
         if (event.outcome() instanceof ReadEvent.Invalid invalid) {

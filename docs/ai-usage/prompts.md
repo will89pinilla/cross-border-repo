@@ -420,3 +420,33 @@ usa ReadEvent.eventId() tal como llegó.
 ```text
 ! git add docs/ && git commit -m "docs(ai-usage): notas manuales de T05" && git push
 ```
+
+### 2026-11-04 11:53 · -
+
+```text
+/next-task
+```
+
+### 2026-11-04 12:04 · T06
+
+```text
+<pasted_content id="b127">
+Aprobado con (a) y estos ajustes. Ya edité la spec: §7.3 (String.compareTo, event_id no textual = "", desempate final por payload_hash) y §7.5 (payload_mismatch = hash del evento ≠ payload_hash de la decisión original, tanto dentro de la carga como entre cargas). Detalle en docs/notes/T06.md.
+
+1. Scheduler: los eventos se lanzan en orden D4 y cada uno toma el permiso del Semaphore solo cuando terminaron sus dependencias. Test: cadena de 50 eventos sobre la misma cuenta con max-concurrency 1 y 2, con timeout, que no se bloquea.
+2. Cualquier excepción de un evento (no solo RetriesExhausted) detiene la carga: no se lanzan más, un evento cuya dependencia falló o quedó sin decidir no corre, se espera a los que están en curso, se suelta el lock y se relanza. Test con un doble que lanza IllegalStateException en el evento k.
+3. Orden D4: operation_date ausente o inválida (no solo null) = Instant.MIN; desempate final por payload_hash.
+4. Duplicados dentro de la carga: solo entre eventos con identidad; payload_mismatch se compara contra el payload_hash de la decisión original (find devuelve decisión + hash).
+5. AC11: cada nivel de concurrencia (1, 4, 16) y cada orden de archivos corre sobre una base recién sembrada.
+6. Incluye los 3 BAJOS de la segunda pasada de T05 que están en docs/notes/T06.md.
+7. Valida al arrancar que 1 <= max-concurrency < maximum-pool-size.
+
+Empieza por el scheduler secuencial y sus tests; paraleliza después.
+</pasted_content id="b127">
+```
+
+### 2026-11-04 13:44 · T06
+
+```text
+/close-task
+```

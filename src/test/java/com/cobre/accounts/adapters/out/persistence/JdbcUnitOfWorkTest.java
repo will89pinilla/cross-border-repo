@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 import com.cobre.accounts.application.port.out.DecisionAlreadyExistsException;
 import com.cobre.accounts.application.port.out.RetriesExhaustedException;
+import com.cobre.accounts.application.port.out.StoredDecision;
 import com.cobre.accounts.domain.model.Account;
 import com.cobre.accounts.domain.model.AccountId;
 import com.cobre.accounts.domain.model.AccountStatus;
@@ -175,7 +176,7 @@ class JdbcUnitOfWorkTest extends PostgresIntegrationTest {
         assertThat(attempts).hasValue(1);
         assertThat(waits).isEmpty();
         assertThat(accounts.findById(sameTransaction.id())).isEmpty();
-        assertThat(decisions.find(eventId))
+        assertThat(decisions.find(eventId).map(StoredDecision::decision))
                 .contains(SettlementDecision.rejected(eventId, RejectionCode.INSUFFICIENT_FUNDS, null));
     }
 

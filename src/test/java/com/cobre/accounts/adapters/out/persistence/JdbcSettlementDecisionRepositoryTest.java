@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.cobre.accounts.application.port.out.DecisionAlreadyExistsException;
+import com.cobre.accounts.application.port.out.StoredDecision;
 import com.cobre.accounts.domain.model.EntryId;
 import com.cobre.accounts.domain.model.RejectionCode;
 import com.cobre.accounts.domain.model.SettlementDecision;
@@ -22,6 +23,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 class JdbcSettlementDecisionRepositoryTest extends PostgresIntegrationTest {
 
     private static final String HASH = "a".repeat(64);
+    private static final String OTHER_HASH = "b".repeat(64);
 
     @Autowired
     JdbcClient jdbc;
@@ -50,7 +52,7 @@ class JdbcSettlementDecisionRepositoryTest extends PostgresIntegrationTest {
 
         decisions.insert(applied, HASH, loadId);
 
-        assertThat(decisions.find(eventId)).contains(applied);
+        assertThat(decisions.find(eventId)).contains(new StoredDecision(applied, HASH));
         Map<String, Object> row = jdbc.sql("SELECT payload_hash, load_id FROM settlement_decision WHERE source_event_id = ?")
                 .params(eventId).query().singleRow();
         assertThat(row).containsEntry("payload_hash", HASH).containsEntry("load_id", loadId);
@@ -63,10 +65,18 @@ class JdbcSettlementDecisionRepositoryTest extends PostgresIntegrationTest {
                 SettlementDecision.rejected(eventId + "_b", RejectionCode.INSUFFICIENT_FUNDS, null);
 
         decisions.insert(withDetail, HASH, loadId);
-        decisions.insert(withoutDetail, HASH, loadId);
+        decisions.insert(withoutDetail, OTHER_HASH, loadId);
 
-        assertThat(decisions.find(eventId)).contains(withDetail);
-        assertThat(decisions.find(eventId + "_b")).contains(withoutDetail);
+        assertThat(decisions.find(eventId)).contains(new StoredDecision(withDetail, HASH));
+        assertThat(decisions.find(eventId + "_b")).contains(new StoredDecision(withoutDetail, OTHER_HASH));
+    }
+
+    /** Spec §7.5: payload_mismatch compares an event's hash with the one stored with its decision. */
+    @Test
+    void findReturnsThePayloadHashStoredWithTheDecision() {
+        decisions.insert(SettlementDecision.rejected(eventId, RejectionCode.INSUFFICIENT_FUNDS, null), OTHER_HASH, loadId);
+
+        assertThat(decisions.find(eventId)).map(StoredDecision::payloadHash).contains(OTHER_HASH);
     }
 
     @Test
@@ -83,7 +93,7 @@ class JdbcSettlementDecisionRepositoryTest extends PostgresIntegrationTest {
         assertThatThrownBy(() -> decisions.insert(SettlementDecision.applied(eventId, insertEntry()), HASH, loadId))
                 .isInstanceOf(DecisionAlreadyExistsException.class)
                 .satisfies(e -> assertThat(((DecisionAlreadyExistsException) e).sourceEventId()).isEqualTo(eventId));
-        assertThat(decisions.find(eventId)).contains(first);
+        assertThat(decisions.find(eventId)).contains(new StoredDecision(first, HASH));
     }
 
     /** Review finding 5: only the primary key means "already decided"; another unique key is a bug. */

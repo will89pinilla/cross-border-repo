@@ -7,7 +7,8 @@ import java.util.UUID;
 /** One decision per {@code event_id}, for the life of the module (D6). Insert only (D13). */
 public interface SettlementDecisionRepository {
 
-    Optional<SettlementDecision> find(String sourceEventId);
+    /** @return the decision with the payload hash stored with it (spec §7.5) */
+    Optional<StoredDecision> find(String sourceEventId);
 
     /**
      * @param payloadHash hash of the event content (algorithm fixed in T05, spec §9)

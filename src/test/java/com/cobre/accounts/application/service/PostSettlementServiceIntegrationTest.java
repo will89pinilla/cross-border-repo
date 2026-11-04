@@ -16,6 +16,7 @@ import com.cobre.accounts.application.port.in.SettlementOutcome;
 import com.cobre.accounts.application.port.in.SettlementOutcome.Applied;
 import com.cobre.accounts.application.port.in.SettlementOutcome.Duplicate;
 import com.cobre.accounts.application.port.in.SettlementOutcome.Rejected;
+import com.cobre.accounts.application.port.out.StoredDecision;
 import com.cobre.accounts.domain.event.DomainEvent;
 import com.cobre.accounts.domain.event.EntriesPosted;
 import com.cobre.accounts.domain.event.PostingRejected;
@@ -172,7 +173,8 @@ class PostSettlementServiceIntegrationTest {
     }
 
     private SettlementDecision decisionOf(String eventId) {
-        return decisions.find(eventId).orElseThrow(() -> new AssertionError("No decision for " + eventId));
+        return decisions.find(eventId).map(StoredDecision::decision)
+                .orElseThrow(() -> new AssertionError("No decision for " + eventId));
     }
 
     // --- AC01 -------------------------------------------------------------------------------
@@ -263,17 +265,46 @@ class PostSettlementServiceIntegrationTest {
     @Test
     void AC05_sameAccountOnBothLegsIsCurrencyMismatchOnDestination() {
         given("F01-case-event", false);
-        String json = new String(readBytes("F01-case-event/loads/1/F01.json"), StandardCharsets.UTF_8)
-                .replace("\"ACC987654321\"", "\"ACC123456789\"");
-        ReadEvent event = reader.read("same-account.json", json.getBytes(StandardCharsets.UTF_8)).events().getFirst();
+        ReadEvent event = sameAccountOnBothLegs("cbmm_20250909_000124", CASE_ORIGIN);
 
         SettlementOutcome outcome = service.post(event, loadId);
 
         assertThat(outcome).isEqualTo(rejected(RejectionCode.CURRENCY_MISMATCH, "DESTINATION"));
-        assertThat(decisionOf("cbmm_20250909_000123")).isEqualTo(SettlementDecision.rejected(
-                "cbmm_20250909_000123", RejectionCode.CURRENCY_MISMATCH, "DESTINATION"));
-        assertThat(linesOf("cbmm_20250909_000123")).isZero();
+        assertThat(decisionOf("cbmm_20250909_000124")).isEqualTo(SettlementDecision.rejected(
+                "cbmm_20250909_000124", RejectionCode.CURRENCY_MISMATCH, "DESTINATION"));
+        assertThat(published).containsExactly(
+                new PostingRejected("cbmm_20250909_000124", RejectionCode.CURRENCY_MISMATCH, "DESTINATION"));
+        assertThat(linesOf("cbmm_20250909_000124")).isZero();
         assertThat(balance(CASE_ORIGIN)).isEqualTo(mxn("200000.00"));
+        assertLedgerIsConsistent();
+    }
+
+    /** T05 review: with D7 on, an unknown account on both legs is not created (a rejection has no effects). */
+    @Test
+    void AC05_sameUnknownAccountOnBothLegsWithAutoCreateIsCurrencyMismatchAndCreatesNothing() {
+        given("F01-case-event", true);
+        AccountId unknown = AccountId.of("ACC555000099");
+        ReadEvent event = sameAccountOnBothLegs("cbmm_20250909_000125", unknown);
+
+        SettlementOutcome outcome = service.post(event, loadId);
+
+        assertThat(outcome).isEqualTo(rejected(RejectionCode.CURRENCY_MISMATCH, "DESTINATION"));
+        assertThat(accounts.findById(unknown)).isEmpty();
+        assertThat(published).containsExactly(
+                new PostingRejected("cbmm_20250909_000125", RejectionCode.CURRENCY_MISMATCH, "DESTINATION"));
+        assertThat(linesOf("cbmm_20250909_000125")).isZero();
+        assertLedgerIsConsistent();
+    }
+
+    /** Built here, not from F01's text, so it does not depend on that fixture. */
+    private ReadEvent sameAccountOnBothLegs(String eventId, AccountId account) {
+        String json = """
+                {"event_id": "%s", "event_type": "cross_border_money_movement",
+                 "operation_date": "2025-09-09T15:32:10Z",
+                 "origin": {"account_id": "%s", "currency": "MXN", "amount": 100.00},
+                 "destination": {"account_id": "%s", "currency": "USD", "amount": 5.50}}"""
+                .formatted(eventId, account.value(), account.value());
+        return reader.read("same-account.json", json.getBytes(StandardCharsets.UTF_8)).events().getFirst();
     }
 
     @Test
@@ -389,7 +420,7 @@ class PostSettlementServiceIntegrationTest {
         SettlementOutcome again = service.post(event, UUID.randomUUID());
 
         assertThat(again).isEqualTo(new Duplicate(
-                SettlementDecision.applied("cbmm_20250909_000123", ((Applied) first).entry().id())));
+                SettlementDecision.applied("cbmm_20250909_000123", ((Applied) first).entry().id()), event.payloadHash()));
         assertThat(count("entry_line")).isEqualTo(lines);
         assertThat(balance(CASE_ORIGIN)).isEqualTo(mxn("184999.50"));
         assertThat(published).isEmpty();

@@ -1,7 +1,7 @@
 {
   "deadline": "2026-11-05T08:00:00-05:00",
-  "next": "T06",
-  "last_session": "2026-11-04: T05 cerrada. Build verde (366 tests). Siguiente: T06; leer antes docs/notes/T06.md (BAJOS de la revisión de T05 y la regla de no anidar UnitOfWork).",
+  "next": "T07",
+  "last_session": "2026-11-04: T06 cerrada. Build verde (426 tests). Siguiente: T07; leer antes docs/notes/T07.md (contrato del Supplier, reporte desde LoadResult, expected.json de F02/F03/F04/F05/F06/F08/F09).",
   "pending_decisions": [],
   "tasks": [
     {
@@ -102,9 +102,9 @@
       ],
       "priority": "must",
       "block": "mié 4 tarde",
-      "status": "todo",
-      "passes": false,
-      "notes": "La más riesgosa: scheduler secuencial primero; M1 (grafo D5 por account_id del evento); no anidar UnitOfWork; BAJOS de la revisión de T05. Detalle: docs/notes/T06.md"
+      "status": "done",
+      "passes": true,
+      "notes": "AC03/04/10/11/16/17 en verde contra PG18; 60 tests nuevos; MEDIO del unlock corregido (WARN + abort). F03/F05/F09 expected.json en T07. Detalle: docs/notes/T06.md"
     },
     {
       "id": "T07",
@@ -135,7 +135,7 @@
       "block": "mié 4 noche",
       "status": "todo",
       "passes": false,
-      "notes": "Si falta tiempo: oráculo + AC11/AC12 sí; benchmark con menos eventos."
+      "notes": "Si falta tiempo: oráculo + AC11/AC12 sí; benchmark con menos eventos. MEDIO y BAJOS de la segunda pasada de T06 (test del lock con Hikari). Detalle: docs/notes/T08.md"
     },
     {
       "id": "T09",

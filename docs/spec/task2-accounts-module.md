@@ -327,7 +327,7 @@ flowchart TB
 
 Solo una carga corre a la vez. El bloqueo es un advisory lock de PostgreSQL (`pg_try_advisory_lock`), detrás del puerto `LoadLock`, para que valga también con más de una instancia.
 
-Para ordenar, una `operation_date` ausente o inválida cuenta como la fecha más antigua posible y un `event_id` ausente como texto vacío. Así, todo evento leído tiene una posición determinística, aunque sea inválido.
+Para ordenar, una `operation_date` ausente o inválida cuenta como la fecha más antigua posible y un `event_id` ausente o que no es texto como texto vacío. Los textos (`event_id` y nombre de archivo) se comparan con `String.compareTo`, sin `Collator` ni configuración regional. Si dos archivos de la carga tienen el mismo nombre, el último desempate es el `payload_hash` del evento; dos eventos que empatan también en el hash son idénticos y su orden no cambia el resultado. Así, todo evento leído tiene una posición determinística, aunque sea inválido.
 
 Transacción de cada evento:
 
@@ -374,6 +374,7 @@ Con D6, en el paso 4 el módulo encuentra la decisión `REJECTED` de E1, lo repo
 
 - Duplicado dentro de la misma carga: gana el primero según el orden de D4. Los demás se reportan como duplicados sin tocar la base; si su contenido difiere del primero, el reporte lo marca con `payload_mismatch: true`.
 - Duplicado de una carga anterior: lo detecta el paso 1 de la transacción.
+- `payload_mismatch` vale en los dos casos y se calcula igual: es `true` si el `payload_hash` del evento difiere del `payload_hash` guardado en la decisión original (`settlement_decision`). Dentro de una carga, esa decisión es la del primero según D4, ya la haya tomado esta carga o una anterior. Un evento sin identidad nunca es duplicado.
 
 ## 8. Salida
 

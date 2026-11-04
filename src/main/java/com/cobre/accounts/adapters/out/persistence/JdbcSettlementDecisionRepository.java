@@ -2,6 +2,7 @@ package com.cobre.accounts.adapters.out.persistence;
 
 import com.cobre.accounts.application.port.out.DecisionAlreadyExistsException;
 import com.cobre.accounts.application.port.out.SettlementDecisionRepository;
+import com.cobre.accounts.application.port.out.StoredDecision;
 import com.cobre.accounts.domain.model.DecisionType;
 import com.cobre.accounts.domain.model.EntryId;
 import com.cobre.accounts.domain.model.RejectionCode;
@@ -22,20 +23,21 @@ public final class JdbcSettlementDecisionRepository implements SettlementDecisio
     }
 
     @Override
-    public Optional<SettlementDecision> find(String sourceEventId) {
+    public Optional<StoredDecision> find(String sourceEventId) {
         return jdbc.sql("""
-                        SELECT source_event_id, decision, entry_id, reason_code, reason_detail
+                        SELECT source_event_id, decision, entry_id, reason_code, reason_detail, payload_hash
                         FROM settlement_decision WHERE source_event_id = ?""")
                 .params(sourceEventId)
                 .query((rs, row) -> {
                     UUID entryId = rs.getObject("entry_id", UUID.class);
                     String reasonCode = rs.getString("reason_code");
-                    return new SettlementDecision(
+                    var decision = new SettlementDecision(
                             rs.getString("source_event_id"),
                             DecisionType.valueOf(rs.getString("decision")),
                             entryId == null ? null : new EntryId(entryId),
                             reasonCode == null ? null : RejectionCode.valueOf(reasonCode),
                             rs.getString("reason_detail"));
+                    return new StoredDecision(decision, rs.getString("payload_hash"));
                 })
                 .optional();
     }

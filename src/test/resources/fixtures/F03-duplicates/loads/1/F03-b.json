@@ -1,0 +1,16 @@
+[
+  {
+    "event_id": "cbmm_20250909_000301",
+    "event_type": "cross_border_money_movement",
+    "operation_date": "2025-09-09T10:00:00Z",
+    "origin": { "account_id": "ACC123456789", "currency": "MXN", "amount": 1000.00 },
+    "destination": { "account_id": "ACC987654321", "currency": "USD", "amount": 55.00 }
+  },
+  {
+    "event_id": "cbmm_20250909_000302",
+    "event_type": "cross_border_money_movement",
+    "operation_date": "2025-09-09T11:00:00Z",
+    "origin": { "account_id": "ACC123456789", "currency": "MXN", "amount": 200.00 },
+    "destination": { "account_id": "ACC987654321", "currency": "USD", "amount": 11.00 }
+  }
+]

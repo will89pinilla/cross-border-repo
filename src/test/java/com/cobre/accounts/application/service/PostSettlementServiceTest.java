@@ -13,6 +13,7 @@ import com.cobre.accounts.application.port.out.DecisionAlreadyExistsException;
 import com.cobre.accounts.application.port.out.DomainEventPublisher;
 import com.cobre.accounts.application.port.out.JournalRepository;
 import com.cobre.accounts.application.port.out.SettlementDecisionRepository;
+import com.cobre.accounts.application.port.out.StoredDecision;
 import com.cobre.accounts.application.port.out.UnitOfWork;
 import com.cobre.accounts.domain.event.DomainEvent;
 import com.cobre.accounts.domain.event.EntriesPosted;
@@ -47,6 +48,7 @@ class PostSettlementServiceTest {
     private static final AccountId ORIGIN = AccountId.of("ACC123456789");
     private static final AccountId DESTINATION = AccountId.of("ACC987654321");
     private static final String HASH = "a".repeat(64);
+    private static final String OTHER_HASH = "b".repeat(64);
     private static final UUID LOAD = UUID.randomUUID();
 
     private final FakeUnitOfWork unitOfWork = new FakeUnitOfWork();
@@ -142,13 +144,14 @@ class PostSettlementServiceTest {
     @Test
     void duplicateIsReportedBeforeAnyRuleWhateverItsContent() {
         SettlementDecision original = SettlementDecision.rejected("e4", RejectionCode.INSUFFICIENT_FUNDS, null);
-        decisions.existing.put("e4", original);
+        decisions.existing.put("e4", new StoredDecision(original, OTHER_HASH));
         seed(ORIGIN, MXN, "1000.00");
         seed(DESTINATION, USD, "0.00");
 
         SettlementOutcome outcome = service(false).post(translated("e4", ORIGIN, "10.00", DESTINATION, "0.55"), LOAD);
 
-        assertThat(outcome).isEqualTo(new Duplicate(original));
+        // The hash stored with the original decision, not the hash of this event (spec §7.5).
+        assertThat(outcome).isEqualTo(new Duplicate(original, OTHER_HASH));
         assertThat(accounts.lockRequests).isEmpty();
         assertThat(decisions.stored).isEmpty();
         assertThat(journal.inserted).isEmpty();
@@ -162,11 +165,11 @@ class PostSettlementServiceTest {
         seed(ORIGIN, MXN, "1000.00");
         seed(DESTINATION, USD, "0.00");
         SettlementDecision racing = SettlementDecision.applied("e5", new EntryId(UUID.randomUUID()));
-        decisions.racingWinner = racing;
+        decisions.racingWinner = new StoredDecision(racing, OTHER_HASH);
 
         SettlementOutcome outcome = service(false).post(translated("e5", ORIGIN, "10.00", DESTINATION, "0.55"), LOAD);
 
-        assertThat(outcome).isEqualTo(new Duplicate(racing));
+        assertThat(outcome).isEqualTo(new Duplicate(racing, OTHER_HASH));
         assertThat(timeline).containsExactly("begin", "rollback");
         assertThat(published).isEmpty();
     }
@@ -277,15 +280,15 @@ class PostSettlementServiceTest {
     }
 
     private final class FakeDecisions implements SettlementDecisionRepository {
-        final Map<String, SettlementDecision> existing = new HashMap<>();
+        final Map<String, StoredDecision> existing = new HashMap<>();
         final List<SettlementDecision> stored = new ArrayList<>();
         final List<String> hashes = new ArrayList<>();
         final List<UUID> loads = new ArrayList<>();
         /** Decided by "another process" after our find and before our insert. */
-        SettlementDecision racingWinner;
+        StoredDecision racingWinner;
 
         @Override
-        public Optional<SettlementDecision> find(String sourceEventId) {
+        public Optional<StoredDecision> find(String sourceEventId) {
             if (racingWinner != null && !unitOfWork.active) {
                 return Optional.of(racingWinner);
             }

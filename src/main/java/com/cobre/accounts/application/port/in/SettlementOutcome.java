@@ -35,11 +35,14 @@ public sealed interface SettlementOutcome {
      * The {@code event_id} already had a decision (D6): nothing was evaluated or written.
      *
      * @param original the decision kept for that {@code event_id}
+     * @param originalPayloadHash the {@code payload_hash} stored with it; the event is a
+     *     {@code payload_mismatch} when its own hash differs (spec §7.5)
      */
-    record Duplicate(SettlementDecision original) implements SettlementOutcome {
+    record Duplicate(SettlementDecision original, String originalPayloadHash) implements SettlementOutcome {
 
         public Duplicate {
             Objects.requireNonNull(original, "original");
+            Objects.requireNonNull(originalPayloadHash, "originalPayloadHash");
         }
 
         public DecisionType originalDecision() {

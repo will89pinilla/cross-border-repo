@@ -1,0 +1,6 @@
+{
+  "accounts": [
+    { "account_id": "ACC123456789", "currency": "MXN", "status": "ACTIVE", "initial_balance": "100.00" },
+    { "account_id": "ACC987654321", "currency": "USD", "status": "ACTIVE", "initial_balance": "20.00" }
+  ]
+}
