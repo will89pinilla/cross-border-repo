@@ -1,0 +1,53 @@
+{
+  "files": [
+    { "name": "F03-a.json", "status": "PROCESSED", "events_read": 2 },
+    { "name": "F03-b.json", "status": "PROCESSED", "events_read": 2 }
+  ],
+  "summary": { "events_read": 4, "applied": 2, "rejected": 0, "duplicates": 2 },
+  "accounts": [
+    {
+      "account_id": "ACC123456789", "currency": "MXN", "final_balance": "198800.00",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000301", "direction": "DEBIT",
+          "amount": "1000.00", "posted_at": "2025-09-09T10:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000302", "direction": "DEBIT",
+          "amount": "200.00", "posted_at": "2025-09-09T11:00:00Z" }
+      ]
+    },
+    {
+      "account_id": "ACC987654321", "currency": "USD", "final_balance": "66.00",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000301", "direction": "CREDIT",
+          "amount": "55.00", "posted_at": "2025-09-09T10:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000302", "direction": "CREDIT",
+          "amount": "11.00", "posted_at": "2025-09-09T11:00:00Z" }
+      ]
+    },
+    {
+      "account_id": "COBRE_FX_POSITION_MXN", "currency": "MXN", "final_balance": "1200.00",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000301", "direction": "CREDIT",
+          "amount": "1000.00", "posted_at": "2025-09-09T10:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000302", "direction": "CREDIT",
+          "amount": "200.00", "posted_at": "2025-09-09T11:00:00Z" }
+      ]
+    },
+    {
+      "account_id": "COBRE_FX_POSITION_USD", "currency": "USD", "final_balance": "-66.00",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000301", "direction": "DEBIT",
+          "amount": "55.00", "posted_at": "2025-09-09T10:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000302", "direction": "DEBIT",
+          "amount": "11.00", "posted_at": "2025-09-09T11:00:00Z" }
+      ]
+    }
+  ],
+  "rejected": [],
+  "duplicates": [
+    { "event_id": "cbmm_20250909_000301", "file": "F03-b.json", "position": 0,
+      "original_decision": "APPLIED", "payload_mismatch": false },
+    { "event_id": "cbmm_20250909_000302", "file": "F03-a.json", "position": 1,
+      "original_decision": "APPLIED", "payload_mismatch": true }
+  ],
+  "invariant": { "MXN": "0.00", "USD": "0.00" }
+}

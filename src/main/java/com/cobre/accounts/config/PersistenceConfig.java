@@ -1,10 +1,12 @@
 package com.cobre.accounts.config;
 
+import com.cobre.accounts.adapters.out.persistence.JdbcAccountReadModel;
 import com.cobre.accounts.adapters.out.persistence.JdbcAccountRepository;
 import com.cobre.accounts.adapters.out.persistence.JdbcJournalRepository;
 import com.cobre.accounts.adapters.out.persistence.JdbcSettlementDecisionRepository;
 import com.cobre.accounts.adapters.out.persistence.JdbcUnitOfWork;
 import com.cobre.accounts.adapters.out.persistence.SeedLoader;
+import com.cobre.accounts.application.port.out.AccountReadModel;
 import com.cobre.accounts.application.port.out.AccountRepository;
 import com.cobre.accounts.application.port.out.JournalRepository;
 import com.cobre.accounts.application.port.out.SettlementDecisionRepository;
@@ -18,7 +20,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.ApplicationRunner;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,6 +41,11 @@ class PersistenceConfig {
     @Bean
     AccountRepository accountRepository(JdbcClient jdbc) {
         return new JdbcAccountRepository(jdbc);
+    }
+
+    @Bean
+    AccountReadModel accountReadModel(JdbcClient jdbc) {
+        return new JdbcAccountReadModel(jdbc);
     }
 
     @Bean
@@ -68,10 +75,16 @@ class PersistenceConfig {
         return new SeedLoader(accounts, journal, unitOfWork, properties.currencyCodes(), entryIds);
     }
 
-    /** Runs after Flyway; an exception here stops the service, with its message in the log (spec §6.3). */
+    /**
+     * Runs after Flyway and before the web server opens its port (T04 review, finding 8): every
+     * singleton, the Flyway initializer included, exists by the time {@code afterSingletonsInstantiated}
+     * runs, and the server's connector only starts afterwards, in the lifecycle phase of the refresh.
+     * So no request ever sees the service without its seed. An exception here stops the service,
+     * with its message in the log (spec §6.3). {@code SeedBeforeWebServerTest} fails if this moves.
+     */
     @Bean
-    ApplicationRunner seedRunner(SeedLoader seedLoader, CbmmProperties properties, ResourceLoader resources) {
-        return args -> {
+    SmartInitializingSingleton seedRunner(SeedLoader seedLoader, CbmmProperties properties, ResourceLoader resources) {
+        return () -> {
             String path = properties.seed().path();
             Resource seed = resources.getResource(path);
             try (InputStream in = seed.getInputStream()) {

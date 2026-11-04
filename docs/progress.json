@@ -1,7 +1,7 @@
 {
   "deadline": "2026-11-05T08:00:00-05:00",
-  "next": "T07",
-  "last_session": "2026-11-04: T06 cerrada. Build verde (426 tests). Siguiente: T07; leer antes docs/notes/T07.md (contrato del Supplier, reporte desde LoadResult, expected.json de F02/F03/F04/F05/F06/F08/F09).",
+  "next": "T08",
+  "last_session": "2026-11-04: T07 cerrada. Build verde (495 tests). Siguiente: T08; leer antes docs/notes/T08.md (snapshot en linesOf). Pregunta abierta de AC14 entre cargas en docs/notes/T07.md.",
   "pending_decisions": [],
   "tasks": [
     {
@@ -117,9 +117,9 @@
       ],
       "priority": "must",
       "block": "mié 4 noche",
-      "status": "todo",
-      "passes": false,
-      "notes": "Lecturas sin EntryLine y saldo de Cobre con SUM en SQL. Completar expected.json de F04/F06 y AC08/AC09/AC13 por la API; ampliar F04; wiring de cbmm.currencies. Detalle: docs/notes/T07.md"
+      "status": "done",
+      "passes": true,
+      "notes": "AC14 en verde por HTTP real; 69 tests nuevos; todos los fixtures contra su expected; ALTO max-part-count y MEDIO §6.1 corregidos. Detalle: docs/notes/T07.md"
     },
     {
       "id": "T08",

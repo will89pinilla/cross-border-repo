@@ -1,0 +1,48 @@
+{
+  "files": [
+    { "name": "F06-truncated.json", "status": "UNREADABLE", "events_read": 0 },
+    { "name": "F06-valid.json", "status": "PROCESSED", "events_read": 2 }
+  ],
+  "summary": { "events_read": 2, "applied": 2, "rejected": 0, "duplicates": 0 },
+  "accounts": [
+    {
+      "account_id": "ACC123456789", "currency": "MXN", "final_balance": "198499.75",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000601", "direction": "DEBIT",
+          "amount": "1000.00", "posted_at": "2025-09-09T10:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000602", "direction": "DEBIT",
+          "amount": "500.25", "posted_at": "2025-09-09T11:00:00Z" }
+      ]
+    },
+    {
+      "account_id": "ACC987654321", "currency": "USD", "final_balance": "82.60",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000601", "direction": "CREDIT",
+          "amount": "55.10", "posted_at": "2025-09-09T10:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000602", "direction": "CREDIT",
+          "amount": "27.50", "posted_at": "2025-09-09T11:00:00Z" }
+      ]
+    },
+    {
+      "account_id": "COBRE_FX_POSITION_MXN", "currency": "MXN", "final_balance": "1500.25",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000601", "direction": "CREDIT",
+          "amount": "1000.00", "posted_at": "2025-09-09T10:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000602", "direction": "CREDIT",
+          "amount": "500.25", "posted_at": "2025-09-09T11:00:00Z" }
+      ]
+    },
+    {
+      "account_id": "COBRE_FX_POSITION_USD", "currency": "USD", "final_balance": "-82.60",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000601", "direction": "DEBIT",
+          "amount": "55.10", "posted_at": "2025-09-09T10:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000602", "direction": "DEBIT",
+          "amount": "27.50", "posted_at": "2025-09-09T11:00:00Z" }
+      ]
+    }
+  ],
+  "rejected": [],
+  "duplicates": [],
+  "invariant": { "MXN": "0.00", "USD": "0.00" }
+}

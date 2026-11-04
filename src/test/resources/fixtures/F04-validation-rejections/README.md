@@ -30,12 +30,16 @@ Con la semilla, `COBRE_FUNDING_MXN` = −200000.00 − 1000.00 = −201000.00.
 | 13 | `..._000414` | Origen `COBRE_FX_POSITION_MXN` (existe, pero es de Cobre) | `ACCOUNT_NOT_FOUND` / `ORIGIN` (regla 3: se trata como inexistente) |
 | 14 | `..._000415` | AC07: origen ACC555000009 (`BLOCKED`), con fondos | `ACCOUNT_INACTIVE` / `ORIGIN` |
 | 15 | `..._000416` | AC07: destino ACC555000009 (`BLOCKED`); origen ACC987654321 en USD | `ACCOUNT_INACTIVE` / `DESTINATION` (la regla 5 va antes que la 6, así que el saldo del origen no importa) |
+| 16 | `..._000417` | `origin.amount` `"abc"` (texto no decimal) | `INVALID_EVENT` / `INVALID_FORMAT` |
+| 17 | `..._000418` | `origin.amount` 100000000000000000.00 (18 dígitos enteros; positivo y con 2 decimales, así que llega a la última regla del monto) | `INVALID_EVENT` / `AMOUNT_TOO_LARGE` |
+| 18 | `..._000419` | `destination.account_id` de 65 caracteres ASCII (el origen es válido, así que falla primero el destino) | `INVALID_EVENT` / `FIELD_TOO_LONG` |
+| 19 | (sin `event_id`) | Por lo demás válido | `INVALID_EVENT` / `MISSING_FIELD`; sin identidad: se reporta por archivo y posición, `event_id` `null` y `decision_stored: false` (§7.2, §8.1) |
 
-Los eventos 411 a 416 pasan las reglas 1 y 2 (se traducen a `PostSettlement`) y se rechazan con las reglas 3 a 5, dentro de su transacción.
+Los eventos 411 a 416 pasan las reglas 1 y 2 (se traducen a `PostSettlement`) y se rechazan con las reglas 3 a 5, dentro de su transacción. Los eventos 417 a 419 tienen identidad y guardan su decisión `REJECTED`; el de la posición 19 no guarda nada: la carga deja 19 decisiones, no 20.
 
 ## Cálculo a mano (saldo = créditos − débitos)
 
-Orden D4 en la carga: el 407 tiene fecha inválida y cuenta como la más antigua (§7.3); después van los demás por `operation_date`, que en este archivo coincide con la posición (401, 402, …, 416). Solo se aplican 401 y 410; un rechazo no cambia saldos ni crea líneas.
+Orden D4 en la carga: el 407 tiene fecha inválida y cuenta como la más antigua (§7.3); después van los demás por `operation_date`, que en este archivo coincide con la posición (401, 402, …, 419 y al final el de la posición 19, 11:10). Solo se aplican 401 y 410; un rechazo no cambia saldos ni crea líneas.
 
 | Cuenta | Inicial | 401 | 410 | Final |
 | --- | --- | --- | --- | --- |
@@ -48,7 +52,9 @@ Orden D4 en la carga: el 407 tiene fecha inválida y cuenta como la más antigua
 
 Invariante MXN: 199889.50 + 1000.00 + 110.50 − 201000.00 = 0.00. USD: 6.08 − 6.08 = 0.00.
 
-`summary`: events_read 16, applied 2, rejected 14, duplicates 0. `rejected`, en orden D4: 407, 402, 403, 404, 405, 406, 408, 409, 411, 412, 413, 414, 415, 416.
+`summary`: events_read 20, applied 2, rejected 18, duplicates 0. `rejected`, en orden D4: 407, 402, 403, 404, 405, 406, 408, 409, 411, 412, 413, 414, 415, 416, 417, 418, 419 y el sin `event_id` (posición 19). Todos con `decision_stored: true` menos el último.
+
+`accounts` del reporte (solo cuentas con líneas en esta carga, por `account_id`): ACC123456789, ACC987654321, COBRE_FX_POSITION_MXN, COBRE_FX_POSITION_USD, cada una con 2 líneas (401 y luego 410, por `posted_at`). `invariant`: `{ "MXN": "0.00", "USD": "0.00" }`.
 
 ## Estado
 

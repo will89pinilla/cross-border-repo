@@ -12,10 +12,14 @@ import com.cobre.accounts.application.port.in.SettlementOutcome;
 import com.cobre.accounts.application.port.in.SettlementOutcome.Applied;
 import com.cobre.accounts.application.port.in.SettlementOutcome.Duplicate;
 import com.cobre.accounts.application.port.in.SettlementOutcome.Rejected;
+import com.cobre.accounts.application.port.out.AccountReadModel;
 import com.cobre.accounts.application.port.out.LoadLock;
 import com.cobre.accounts.application.service.DependencyScheduler.Job;
 import com.cobre.accounts.domain.model.AccountId;
+import com.cobre.accounts.domain.model.CurrencyCode;
+import com.cobre.accounts.domain.model.EntryLine;
 import com.cobre.accounts.domain.model.SettlementDecision;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -25,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -61,14 +66,16 @@ public final class LoadEventFilesService implements LoadEventFilesUseCase {
 
     private final PostSettlementUseCase postSettlement;
     private final LoadLock loadLock;
+    private final AccountReadModel readModel;
     private final DependencyScheduler scheduler;
     private final Clock clock;
     private final Supplier<UUID> loadIds;
 
-    public LoadEventFilesService(PostSettlementUseCase postSettlement, LoadLock loadLock, int maxConcurrency,
-            Clock clock, Supplier<UUID> loadIds) {
+    public LoadEventFilesService(PostSettlementUseCase postSettlement, LoadLock loadLock, AccountReadModel readModel,
+            int maxConcurrency, Clock clock, Supplier<UUID> loadIds) {
         this.postSettlement = Objects.requireNonNull(postSettlement, "postSettlement");
         this.loadLock = Objects.requireNonNull(loadLock, "loadLock");
+        this.readModel = Objects.requireNonNull(readModel, "readModel");
         this.scheduler = new DependencyScheduler(maxConcurrency);
         this.clock = Objects.requireNonNull(clock, "clock");
         this.loadIds = Objects.requireNonNull(loadIds, "loadIds");
@@ -95,7 +102,16 @@ public final class LoadEventFilesService implements LoadEventFilesUseCase {
                     .map(file -> new LoadedFile(file.name(), file.status(), file.events().size()))
                     .sorted(FILE_ORDER)
                     .toList();
-            return new LoadResult(loadId, startedAt, clock.instant(), scheduler.maxConcurrency(), loaded, results);
+            // Still under the lock: no other load can move these balances before the report is written.
+            Set<AccountId> withLines = results.stream()
+                    .filter(result -> result.outcome() instanceof Applied)
+                    .flatMap(result -> ((Applied) result.outcome()).entry().lines().stream())
+                    .map(EntryLine::accountId)
+                    .collect(Collectors.toSet());
+            Map<AccountId, BigDecimal> finalBalances = readModel.balancesOf(withLines);
+            SortedMap<CurrencyCode, BigDecimal> invariant = readModel.invariant();
+            return new LoadResult(loadId, startedAt, clock.instant(), scheduler.maxConcurrency(), loaded, results,
+                    finalBalances, invariant);
         }
     }
 

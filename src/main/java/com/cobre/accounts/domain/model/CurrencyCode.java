@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
  * Three uppercase letters. Only the format is checked here: which currencies are supported is
  * configuration ({@code cbmm.currencies}) and is validated by the file reader (spec §6.1).
  */
-public record CurrencyCode(String value) {
+public record CurrencyCode(String value) implements Comparable<CurrencyCode> {
 
     private static final Pattern FORMAT = Pattern.compile("[A-Z]{3}");
 
@@ -20,6 +20,12 @@ public record CurrencyCode(String value) {
 
     public static CurrencyCode of(String value) {
         return new CurrencyCode(value);
+    }
+
+    /** By code, as {@link String#compareTo}: the order of {@code invariant} in the report (spec §8.1). */
+    @Override
+    public int compareTo(CurrencyCode other) {
+        return value.compareTo(other.value);
     }
 
     @Override

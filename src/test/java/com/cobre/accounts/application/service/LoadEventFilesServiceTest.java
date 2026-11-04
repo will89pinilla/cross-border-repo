@@ -15,6 +15,9 @@ import com.cobre.accounts.application.port.in.SettlementOutcome;
 import com.cobre.accounts.application.port.in.SettlementOutcome.Applied;
 import com.cobre.accounts.application.port.in.SettlementOutcome.Duplicate;
 import com.cobre.accounts.application.port.in.SettlementOutcome.Rejected;
+import com.cobre.accounts.application.port.in.AccountBalance;
+import com.cobre.accounts.application.port.in.EntryLinePage;
+import com.cobre.accounts.application.port.out.AccountReadModel;
 import com.cobre.accounts.application.port.out.LoadLock;
 import com.cobre.accounts.domain.model.Account;
 import com.cobre.accounts.domain.model.AccountId;
@@ -27,15 +30,19 @@ import com.cobre.accounts.domain.model.RejectionCode;
 import com.cobre.accounts.domain.model.SettlementDecision;
 import com.cobre.accounts.domain.service.PostingResult.Posted;
 import com.cobre.accounts.domain.service.PostingService;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -62,8 +69,50 @@ class LoadEventFilesServiceTest {
     private final FakeLock lock = new FakeLock();
     private final FakePosting posting = new FakePosting();
 
+    private final FakeReadModel readModel = new FakeReadModel(lock);
+
     private LoadEventFilesService service(int maxConcurrency) {
-        return new LoadEventFilesService(posting, lock, maxConcurrency, Clock.fixed(NOW, ZoneOffset.UTC), () -> LOAD_ID);
+        return new LoadEventFilesService(posting, lock, readModel, maxConcurrency, Clock.fixed(NOW, ZoneOffset.UTC),
+                () -> LOAD_ID);
+    }
+
+    // --- Final balances and invariant of the report (spec §8.1) -----------------------------
+
+    @Test
+    void AC11_finalBalancesOfAccountsWithLinesAndInvariantAreReadWhileTheLockIsHeld() {
+        posting.applyAll = true;
+        posting.outcomes.put("e2", e -> new Rejected(RejectionCode.INSUFFICIENT_FUNDS, null, true));
+        AccountId other = AccountId.of("ACC_OTHER");
+        readModel.balances.putAll(Map.of(MX, new BigDecimal("990.00"), US, new BigDecimal("1.00"),
+                AccountId.fxPosition(MXN), new BigDecimal("10.00"), AccountId.fxPosition(USD), new BigDecimal("-1.00"),
+                other, new BigDecimal("5.00")));
+        readModel.invariant.put(USD, new BigDecimal("0.00"));
+        readModel.invariant.put(MXN, new BigDecimal("0.00"));
+
+        LoadResult result = service(4).load(() -> List.of(file("a.json",
+                event("a.json", 0, "e1", "2025-09-09T10:00:00Z", MX, US),
+                event("a.json", 1, "e2", "2025-09-09T11:00:00Z", US, AccountId.of("ACC_REJECTED")))));
+
+        // Only the accounts with lines in this load: e2 was rejected, ACC_OTHER was not touched.
+        assertThat(result.finalBalances()).containsOnly(
+                Map.entry(MX, new BigDecimal("990.00")), Map.entry(US, new BigDecimal("1.00")),
+                Map.entry(AccountId.fxPosition(MXN), new BigDecimal("10.00")),
+                Map.entry(AccountId.fxPosition(USD), new BigDecimal("-1.00")));
+        assertThat(result.invariant().keySet()).containsExactly(MXN, USD);
+        assertThat(readModel.readWithoutLock).isFalse();
+        assertThat(readModel.reads.get()).isEqualTo(2);
+    }
+
+    @Test
+    void AC11_aLoadWithoutAppliedEventsHasNoFinalBalancesButStillItsInvariant() {
+        readModel.invariant.put(MXN, new BigDecimal("0.00"));
+
+        LoadResult result = service(4).load(() -> List.of(file("a.json",
+                event("a.json", 0, "e1", "2025-09-09T10:00:00Z", MX, US))));
+
+        assertThat(result.finalBalances()).isEmpty();
+        assertThat(result.invariant()).containsOnly(Map.entry(MXN, new BigDecimal("0.00")));
+        assertThat(readModel.readWithoutLock).isFalse();
     }
 
     // --- Order D4 ---------------------------------------------------------------------------
@@ -394,6 +443,50 @@ class LoadEventFilesServiceTest {
             held = true;
             acquisitions++;
             return Optional.of(() -> held = false);
+        }
+    }
+
+    /** Balances and invariant as given; remembers whether any read happened without the load lock. */
+    private static final class FakeReadModel implements AccountReadModel {
+        final Map<AccountId, BigDecimal> balances = new HashMap<>();
+        final SortedMap<CurrencyCode, BigDecimal> invariant = new TreeMap<>();
+        final AtomicInteger reads = new AtomicInteger();
+        final FakeLock lock;
+        volatile boolean readWithoutLock;
+
+        FakeReadModel(FakeLock lock) {
+            this.lock = lock;
+        }
+
+        private void read() {
+            reads.incrementAndGet();
+            if (!lock.held) {
+                readWithoutLock = true;
+            }
+        }
+
+        @Override
+        public Optional<AccountBalance> balanceOf(AccountId id) {
+            throw new AssertionError("The load reads balances in one call");
+        }
+
+        @Override
+        public Map<AccountId, BigDecimal> balancesOf(Collection<AccountId> ids) {
+            read();
+            Map<AccountId, BigDecimal> found = new HashMap<>();
+            ids.forEach(id -> Optional.ofNullable(balances.get(id)).ifPresent(b -> found.put(id, b)));
+            return found;
+        }
+
+        @Override
+        public SortedMap<CurrencyCode, BigDecimal> invariant() {
+            read();
+            return new TreeMap<>(invariant);
+        }
+
+        @Override
+        public Optional<EntryLinePage> linesOf(AccountId id, int limit, int offset) {
+            throw new AssertionError("The load does not read lines");
         }
     }
 

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.cobre.accounts.adapters.in.file.CbmmEventTranslator;
 import com.cobre.accounts.adapters.in.file.EventFileReader;
+import com.cobre.accounts.adapters.out.persistence.JdbcAccountReadModel;
 import com.cobre.accounts.adapters.out.persistence.JdbcAccountRepository;
 import com.cobre.accounts.adapters.out.persistence.JdbcJournalRepository;
 import com.cobre.accounts.adapters.out.persistence.JdbcSettlementDecisionRepository;
@@ -100,7 +101,8 @@ class LoadEventFilesServiceIntegrationTest {
         }
 
         LoadEventFilesService loads(int maxConcurrency, PostSettlementUseCase posting) {
-            return new LoadEventFilesService(posting, new PostgresLoadLock(dataSource), maxConcurrency,
+            return new LoadEventFilesService(posting, new PostgresLoadLock(dataSource), new JdbcAccountReadModel(jdbc),
+                    maxConcurrency,
                     Clock.systemUTC(), UUID::randomUUID);
         }
 
@@ -378,7 +380,8 @@ class LoadEventFilesServiceIntegrationTest {
         // Same instance (same LoadLock adapter type, same database) and another instance.
         assertThatThrownBy(() -> ledger.loads(4).load(secondFiles)).isInstanceOf(LoadInProgressException.class);
         LoadEventFilesService otherInstance = new LoadEventFilesService(ledger.postSettlement,
-                new PostgresLoadLock(ledger.dataSource), 4, Clock.systemUTC(), UUID::randomUUID);
+                new PostgresLoadLock(ledger.dataSource), new JdbcAccountReadModel(ledger.jdbc), 4, Clock.systemUTC(),
+                UUID::randomUUID);
         assertThatThrownBy(() -> otherInstance.load(secondFiles)).isInstanceOf(LoadInProgressException.class);
         assertThat(readWhileRefused).isEmpty();
 

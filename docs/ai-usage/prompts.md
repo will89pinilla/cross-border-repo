@@ -450,3 +450,83 @@ Empieza por el scheduler secuencial y sus tests; paraleliza después.
 ```text
 /close-task
 ```
+
+### 2026-11-04 14:07 · -
+
+```text
+/next-task
+```
+
+### 2026-11-04 14:12 · T07
+
+```text
+<pasted_content id="e245">
+Aprobado. Respuestas, ya escritas en la spec §8.2 y §6.2 (fila en harness-log):
+1. Paginación: limit entre 1 y 1000 (defecto 100), offset >= 0 (defecto 0); fuera de rango o no numérico → 400 INVALID_PAGINATION. Nada se recorta en silencio.
+2. AC14: de acuerdo, con un ajuste: /balance = final_balance del ÚLTIMO reporte en que aparece la cuenta; líneas de /transactions sin aperturas (prefijo opening_) = unión, en orden, de las líneas de esa cuenta en todos los reportes.
+3. Forma de /transactions: sí, la propuesta.
+
+Ajustes (detalle en docs/notes/T07.md, "Revisión del plan"):
+- /balance devuelve account_id, type, status, currency y balance.
+- Montos como String de 2 decimales en el DTO; AC11 sin Spring usa el mismo DTO y el mismo serializador que el controlador.
+- invariant con todas las monedas de cbmm.currencies, ordenadas.
+- §6.2: 1000 archivos por carga vía server.tomcat.max-part-count → 413 PAYLOAD_TOO_LARGE; pruébalo y verifica qué responde Tomcat. Tests de 413 con límites pequeños (< max-swallow-size).
+- 500 → INTERNAL_ERROR sin traza ni mensaje.
+- Test que falle si la semilla deja de correr antes de que el conector acepte conexiones.
+
+Empieza por F04 y su README; me lo traes antes de escribir los expected.json.
+</pasted_content id="e245">
+```
+
+### 2026-11-04 14:18 · T07
+
+```text
+README de F04 revisado contra el archivo: correcto (montos, largo de 65, orden D4 con 407 primero y el sin event_id al final, saldos, invariantes, 18 rechazos, 19 decisiones, 4 cuentas en accounts). Escribe los expected.json desde los README, empezando por F04. Recuerda: montos como texto con 2 decimales, metadata fuera, y nunca copiando la salida de la implementación.
+```
+
+### 2026-11-04 14:24 · T07
+
+```text
+Revisé los 12 expected.json contra sus README y sus archivos de entrada: correctos (orden D4 de duplicados y rechazos, payload_mismatch, saldos acumulados, orden de archivos, cuentas y líneas, montos con 2 decimales, sin metadata). De acuerdo con final_balance acumulado (§8.1). Sigue con los tests de API en rojo y luego el código, criterio por criterio. Cuando estén en rojo, muéstrame la lista de tests y por qué falla cada uno antes de escribir el código.
+```
+
+### 2026-11-04 14:54 · T07
+
+```text
+<pasted_content id="e245">
+Revisé la lista en rojo: los 35 son tests nuevos (o métodos nuevos en LoadEventFilesServiceTest), y en los tests de T03–T06 solo cambiaron conteos hacia arriba, sin asserts quitados. Cada uno falla por la razón correcta. De acuerdo con tus 3 decisiones. El aviso de stop-verify es esperado (lo anoté en harness-log). Sigue con el código en el orden que propusiste, con estos puntos (detalle en docs/notes/T07.md, "Revisión de los tests en rojo"):
+
+1. El controlador serializa el reporte con el mismo ApiJson que usa LoadReportDeterminismTest, no con el ObjectMapper de Spring. Agrega una verificación de que el cuerpo HTTP de F01 es byte a byte ApiJson.write(LoadReport.from(...)) sin metadata.
+2. 413: si algún caso lo responde Tomcat antes de Spring y no admite cuerpo, no lo fuerces: deja status 413 sin cuerpo en ese caso, explica por qué en el test y propón la línea para §6.2.
+3. Nombre de archivo del multipart nulo o en blanco → "" en el reporte. Agrega un test.
+4. Test: /balance responde 200 mientras otra sesión tiene el LoadLock.
+</pasted_content id="e245">
+```
+
+### 2026-11-04 15:07 · T07
+
+```text
+/close-task
+```
+
+### 2026-11-04 15:16 · T07
+
+```text
+<pasted_content id="e245">
+Decisiones de cierre de T07 (todo está también en docs/notes/T07.md, últimos puntos, y en la spec):
+
+1. MEDIO §6.1: rechazar con INVALID_DATE, sin truncar (D11), en T07. La línea de §6.1 ya está escrita: más de 6 decimales solo si los sobrantes son ceros (Instant.getNano() % 1000 == 0). Tests: uno unitario en CbmmEventTranslatorTest (7 decimales distintos de cero → INVALID_DATE; 7 decimales terminados en 0 → válido) y uno de integración que compare posted_at del reporte y de /transactions con 6 decimales. No toques F04 ni su expected.json.
+
+2. BAJOS que se hacen ya:
+   - 5: test con dos cargas que tocan la misma cuenta; /transactions sin aperturas = concatenación en orden de las líneas de esa cuenta en los dos reportes, y /balance = final_balance del segundo.
+   - 6: assert de 404 para ACC555000002 en AC15.
+   - 7: Javadoc de LoadReportDeterminismTest (compara árboles JSON, no bytes).
+   - 10: mensaje del 413 por conteo de partes.
+
+3. Ya resueltos en la spec, sin cambio de código: 8 (§11 server.tomcat.max-part-count = 1000) y 4 (§8.2: errores propios de Spring MVC sin code).
+
+4. El 2 (snapshot en linesOf) va a T08, ya anotado en docs/notes/T08.md. El 1, el 3 y el 9 se anotan en T07.md sin cambio.
+
+Después: build verde, docs/ai-usage/T07.md, progress.json y commit.
+</pasted_content id="e245">
+```

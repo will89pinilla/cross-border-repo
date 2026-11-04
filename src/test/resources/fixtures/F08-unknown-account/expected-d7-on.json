@@ -1,0 +1,42 @@
+{
+  "files": [
+    { "name": "F08.json", "status": "PROCESSED", "events_read": 2 }
+  ],
+  "summary": { "events_read": 2, "applied": 1, "rejected": 1, "duplicates": 0 },
+  "accounts": [
+    {
+      "account_id": "ACC123456789", "currency": "MXN", "final_balance": "199150.00",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000801", "direction": "DEBIT",
+          "amount": "850.00", "posted_at": "2025-09-09T10:00:00Z" }
+      ]
+    },
+    {
+      "account_id": "ACC555000001", "currency": "USD", "final_balance": "50.00",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000801", "direction": "CREDIT",
+          "amount": "50.00", "posted_at": "2025-09-09T10:00:00Z" }
+      ]
+    },
+    {
+      "account_id": "COBRE_FX_POSITION_MXN", "currency": "MXN", "final_balance": "850.00",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000801", "direction": "CREDIT",
+          "amount": "850.00", "posted_at": "2025-09-09T10:00:00Z" }
+      ]
+    },
+    {
+      "account_id": "COBRE_FX_POSITION_USD", "currency": "USD", "final_balance": "-50.00",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000801", "direction": "DEBIT",
+          "amount": "50.00", "posted_at": "2025-09-09T10:00:00Z" }
+      ]
+    }
+  ],
+  "rejected": [
+    { "event_id": "cbmm_20250909_000802", "file": "F08.json", "position": 1,
+      "code": "INSUFFICIENT_FUNDS", "detail": null, "decision_stored": true }
+  ],
+  "duplicates": [],
+  "invariant": { "MXN": "0.00", "USD": "0.00" }
+}

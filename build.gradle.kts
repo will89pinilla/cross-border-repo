@@ -22,6 +22,7 @@ dependencies {
     implementation(libs.spring.boot.starter.jdbc)
     implementation(libs.spring.boot.starter.flyway)
     implementation(libs.flyway.postgresql)
+    implementation(libs.springdoc.webmvc.ui)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.spring.boot.bom))

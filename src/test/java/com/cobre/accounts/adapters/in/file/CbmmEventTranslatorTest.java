@@ -171,6 +171,30 @@ class CbmmEventTranslatorTest {
         assertThat(command(read).operationDate()).isEqualTo(Instant.parse("2025-09-09T15:32:10Z"));
     }
 
+    /**
+     * §6.1: precision up to microseconds, that of {@code timestamptz}. A sub-microsecond digit other
+     * than 0 is {@code INVALID_DATE}, never truncated nor rounded (D11): the report, {@code
+     * /transactions} and the D4 order must all see the same instant.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {"2025-09-09T10:00:00.1234567Z", "2025-09-09T10:00:00.000000001Z",
+        "2025-09-09T05:00:00.123456789-05:00"})
+    void AC08_dateBeyondMicrosecondsIsInvalid(String date) {
+        ReadEvent read = read(event().set("operation_date", text(date)));
+
+        assertThat(read.outcome()).isEqualTo(invalid("INVALID_DATE"));
+        assertThat(read.operationDate()).isNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"2025-09-09T10:00:00.1234560Z", "2025-09-09T10:00:00.123456000Z",
+        "2025-09-09T10:00:00.123456Z"})
+    void AC08_dateWithTrailingZerosBeyondMicrosecondsIsValid(String date) {
+        ReadEvent read = read(event().set("operation_date", text(date)));
+
+        assertThat(command(read).operationDate()).isEqualTo(Instant.parse("2025-09-09T10:00:00.123456Z"));
+    }
+
     @Test
     void additionalFieldsAreIgnored() {
         ReadEvent read = read(event().set("trace", "{\"a\":[1,2]}").origin("bank", text("X")));
@@ -256,7 +280,13 @@ class CbmmEventTranslatorTest {
         assertThat(file.status()).isEqualTo(FileStatus.PROCESSED);
         Map<String, ReadEvent.Outcome> outcomes = file.events().stream()
                 .collect(Collectors.toMap(ReadEvent::eventId, ReadEvent::outcome));
-        assertThat(outcomes).hasSize(16);
+        assertThat(outcomes).hasSize(20);
+        // T07: one event per remaining rule 2 detail, and one without event_id (null key).
+        assertThat(outcomes.get("cbmm_20250909_000417")).isEqualTo(invalid("INVALID_FORMAT"));
+        assertThat(outcomes.get("cbmm_20250909_000418")).isEqualTo(invalid("AMOUNT_TOO_LARGE"));
+        assertThat(outcomes.get("cbmm_20250909_000419")).isEqualTo(invalid("FIELD_TOO_LONG"));
+        assertThat(outcomes.get(null)).isEqualTo(invalid("MISSING_FIELD"));
+        assertThat(file.events().get(19).hasIdentity()).isFalse();
         assertThat(outcomes.get("cbmm_20250909_000402")).isEqualTo(invalid("NON_POSITIVE_AMOUNT"));
         assertThat(outcomes.get("cbmm_20250909_000403")).isEqualTo(invalid("NON_POSITIVE_AMOUNT"));
         assertThat(outcomes.get("cbmm_20250909_000404")).isEqualTo(invalid("TOO_MANY_DECIMALS"));
@@ -274,7 +304,7 @@ class CbmmEventTranslatorTest {
         assertThat(java.util.stream.IntStream.rangeClosed(411, 416).mapToObj(n -> outcomes.get("cbmm_20250909_000" + n)))
                 .allSatisfy(outcome -> assertThat(outcome).isInstanceOf(ReadEvent.Translated.class));
         assertThat(file.events()).extracting(ReadEvent::position)
-                .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+                .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19);
     }
 
     // --- AC09 -------------------------------------------------------------------------------

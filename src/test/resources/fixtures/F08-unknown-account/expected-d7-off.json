@@ -1,0 +1,15 @@
+{
+  "files": [
+    { "name": "F08.json", "status": "PROCESSED", "events_read": 2 }
+  ],
+  "summary": { "events_read": 2, "applied": 0, "rejected": 2, "duplicates": 0 },
+  "accounts": [],
+  "rejected": [
+    { "event_id": "cbmm_20250909_000801", "file": "F08.json", "position": 0,
+      "code": "ACCOUNT_NOT_FOUND", "detail": "DESTINATION", "decision_stored": true },
+    { "event_id": "cbmm_20250909_000802", "file": "F08.json", "position": 1,
+      "code": "ACCOUNT_NOT_FOUND", "detail": "ORIGIN", "decision_stored": true }
+  ],
+  "duplicates": [],
+  "invariant": { "MXN": "0.00", "USD": "0.00" }
+}

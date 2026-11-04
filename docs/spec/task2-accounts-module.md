@@ -228,7 +228,7 @@ Estructura definida por el caso:
 | `event_id` | Obligatorio, texto no vacío; identidad del evento (D6). Solo caracteres ASCII imprimibles sin espacios; si no, `INVALID_FORMAT` |
 | `account_id` (de `origin` y `destination`) | Solo caracteres ASCII imprimibles sin espacios; si no, `INVALID_FORMAT`. Así el orden de Java y el de `COLLATE "C"` coinciden siempre (D12) |
 | `event_type` | Obligatorio; el único tipo soportado es `cross_border_money_movement` |
-| `operation_date` | Obligatorio; ISO 8601 con zona (`Z` u offset); se guarda como `Instant` en UTC |
+| `operation_date` | Obligatorio; ISO 8601 con zona (`Z` u offset); se guarda como `Instant` en UTC. Precisión máxima de microsegundos, la de `timestamptz`: se aceptan más de 6 decimales solo si los que sobran son ceros (`10:00:00.1234560Z` es válido; `10:00:00.1234567Z` no). Si no, `INVALID_DATE`; nunca se trunca ni se redondea (D11), porque el valor del reporte, el de `/transactions` y el orden de D4 deben ser el mismo |
 | `origin`, `destination` | Obligatorios, cada uno con `account_id`, `currency` y `amount` |
 | `currency` | Tres letras mayúsculas incluidas en `cbmm.currencies` (por defecto `MXN,USD`) |
 | `amount` | Número JSON o texto decimal, mayor que 0, con 2 decimales como máximo una vez quitados los ceros finales (`10.500` es válido; `10.005` no) y con 17 dígitos enteros como máximo, el límite de `numeric(19,2)`. Se lee como `BigDecimal` desde el texto del JSON, sin pasar por `double` |
@@ -249,7 +249,7 @@ Un archivo puede tener cualquiera de estas tres formas, y el lector la detecta a
 - Si el archivo empieza con `{` y su primer objeto no se puede leer, es NDJSON cuando alguna de sus líneas, sola, es un objeto JSON completo; entonces esa primera línea sale `INVALID_EVENT` / `MALFORMED_JSON` y las demás se procesan. Si ninguna línea lo es, es un objeto truncado y el archivo sale `UNREADABLE`.
 - En NDJSON, una línea que no es JSON válido es un evento `INVALID_EVENT` con detalle `MALFORMED_JSON`; las demás líneas se procesan.
 - La posición de un evento es su índice, empezando en 0, dentro del arreglo o de las líneas no vacías del archivo.
-- Límites configurables: 50 MB por archivo, 200 MB por carga, 1,000,000 eventos por carga. Superarlos responde 413.
+- Límites configurables: 50 MB por archivo, 200 MB por carga, 1,000 archivos por carga y 1,000,000 eventos por carga. Superarlos responde 413 `PAYLOAD_TOO_LARGE`. El límite de archivos es el de partes del multipart del servidor (`server.tomcat.max-part-count`), que por defecto es mucho menor.
 
 ### 6.3 Semilla de cuentas
 
@@ -449,11 +449,14 @@ Con D6, en el paso 4 el módulo encuentra la decisión `REJECTED` de E1, lo repo
 | --- | --- |
 | `POST /v1/event-files` (multipart, campo `files`, uno o más archivos) | 200 con el reporte; 400 `NO_FILES` sin archivos; 409 `LOAD_IN_PROGRESS` si hay otra carga en curso; 413 si supera los límites de 6.2 |
 | `GET /v1/accounts/{account_id}/balance` | 200 con `account_id`, `type`, `status`, `currency` y `balance`; 404 `ACCOUNT_NOT_FOUND` |
-| `GET /v1/accounts/{account_id}/transactions?limit=100&offset=0` | 200 con las líneas de la cuenta ordenadas por `posted_at`, `source_event_id` y número de línea, y el `total`; `limit` máximo 1,000; 404 `ACCOUNT_NOT_FOUND` |
+| `GET /v1/accounts/{account_id}/transactions?limit=100&offset=0` | 200 con las líneas de la cuenta ordenadas por `posted_at`, `source_event_id` y número de línea, y el `total`; `limit` entre 1 y 1,000 (por defecto 100) y `offset` ≥ 0 (por defecto 0); fuera de rango o no numérico, 400 `INVALID_PAGINATION`; 404 `ACCOUNT_NOT_FOUND`. Cuerpo: `{ "account_id", "currency", "total", "limit", "offset", "transactions": [{ "source_event_id", "direction", "amount", "posted_at" }] }`, con la misma forma de línea que el reporte; incluye las aperturas |
 | `GET /actuator/health`, `GET /actuator/prometheus` | Salud y métricas |
 | `/swagger-ui.html` | Documentación interactiva de la API |
 
 Las consultas leen el estado confirmado y funcionan también durante una carga.
+
+- Los errores responden `application/problem+json` (RFC 9457) con una propiedad `code` (`NO_FILES`, `LOAD_IN_PROGRESS`, `PAYLOAD_TOO_LARGE`, `ACCOUNT_NOT_FOUND`, `INVALID_PAGINATION`, `INTERNAL_ERROR`). Un 500 no expone la traza ni el mensaje de la excepción. Los errores propios de Spring MVC (405, 415 y rutas inexistentes) responden con su ProblemDetail estándar, sin `code`: `code` solo identifica los errores de esta API. Un multipart mal formado responde 400 `NO_FILES` (no se pudo obtener ningún archivo); más archivos que el límite de §6.2 responde 413 `PAYLOAD_TOO_LARGE`.
+- AC14, "coinciden con el reporte": `/balance` es igual al `final_balance` del último reporte en que aparece la cuenta, y las líneas de `/transactions` sin las aperturas (`source_event_id` con prefijo `opening_`) son, en el mismo orden, la unión de las líneas de esa cuenta en los reportes de todas las cargas.
 
 ### 8.3 Eventos de dominio
 
@@ -508,7 +511,7 @@ Cada criterio es un test automatizado. Salvo que se diga otra cosa, hay una sola
 | PostgreSQL | 18. La versión 19 sale el 19 de noviembre de 2026, después de la entrega ([PostgreSQL](https://www.postgresql.org/about/news/postgresql-19-rc-1-released-3409/)) |
 | Flyway, Testcontainers, JUnit, AssertJ, Jackson, driver de PostgreSQL | Las que gestiona Spring Boot |
 | ArchUnit | 1.5.0, con el módulo `archunit-junit6` |
-| springdoc-openapi | Línea 3.x (`springdoc-openapi-starter-webmvc-ui`), la que corresponde a Spring Boot 4; fijada en el version catalog |
+| springdoc-openapi | Línea 3.x (`springdoc-openapi-starter-webmvc-ui`), la que corresponde a Spring Boot 4; fijada en el version catalog. Trae Jackson 2 de forma transitiva (por `swagger-core`) solo para generar el documento OpenAPI; el código del servicio usa únicamente Jackson 3 (`tools.jackson.*`) |
 | Pruebas de propiedades | JUnit 6 nativo, sin librería adicional: `@ParameterizedTest` con un generador de semilla fija y varias semillas. Se descartó jqwik porque se basa en JUnit Platform 1.x y Spring Boot 4 usa JUnit 6 |
 | Infraestructura local | Docker Compose: PostgreSQL y `accounts-service` |
 
@@ -558,6 +561,7 @@ Configuración:
 | `cbmm.accounts.auto-create` | `false` |
 | `cbmm.processing.max-concurrency` | `16` |
 | `spring.datasource.hikari.maximum-pool-size` | `20` |
+| `server.tomcat.max-part-count` | `1000` (límite de archivos por carga de §6.2; cuenta partes del multipart, no solo archivos) |
 | `spring.servlet.multipart.max-file-size` / `max-request-size` | `50MB` / `200MB` |
 | `cbmm.upload.max-events-per-load` | `1000000` |
 

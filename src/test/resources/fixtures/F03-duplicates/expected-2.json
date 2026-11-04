@@ -1,0 +1,20 @@
+{
+  "files": [
+    { "name": "F03-a.json", "status": "PROCESSED", "events_read": 2 },
+    { "name": "F03-b.json", "status": "PROCESSED", "events_read": 2 }
+  ],
+  "summary": { "events_read": 4, "applied": 0, "rejected": 0, "duplicates": 4 },
+  "accounts": [],
+  "rejected": [],
+  "duplicates": [
+    { "event_id": "cbmm_20250909_000301", "file": "F03-a.json", "position": 0,
+      "original_decision": "APPLIED", "payload_mismatch": false },
+    { "event_id": "cbmm_20250909_000301", "file": "F03-b.json", "position": 0,
+      "original_decision": "APPLIED", "payload_mismatch": false },
+    { "event_id": "cbmm_20250909_000302", "file": "F03-b.json", "position": 1,
+      "original_decision": "APPLIED", "payload_mismatch": false },
+    { "event_id": "cbmm_20250909_000302", "file": "F03-a.json", "position": 1,
+      "original_decision": "APPLIED", "payload_mismatch": true }
+  ],
+  "invariant": { "MXN": "0.00", "USD": "0.00" }
+}

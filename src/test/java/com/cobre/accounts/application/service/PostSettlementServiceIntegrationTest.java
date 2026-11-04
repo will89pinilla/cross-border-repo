@@ -348,8 +348,12 @@ class PostSettlementServiceIntegrationTest {
         assertThat(outcomes.get("cbmm_20250909_000410")).isInstanceOf(Applied.class);
         assertThat(outcomes.get("cbmm_20250909_000407")).isEqualTo(rejected(RejectionCode.INVALID_EVENT, "INVALID_DATE"));
         assertThat(outcomes.get("cbmm_20250909_000409")).isEqualTo(rejected(RejectionCode.UNSUPPORTED_EVENT_TYPE, null));
-        assertThat(outcomes.values()).filteredOn(Rejected.class::isInstance).hasSize(14);
-        assertThat(count("settlement_decision")).isEqualTo(16);
+        assertThat(outcomes.values()).filteredOn(Rejected.class::isInstance).hasSize(18);
+        // 20 events, but the one without event_id has no identity and stores nothing (§7.2).
+        assertThat(outcomes.get(null)).isEqualTo(new Rejected(RejectionCode.INVALID_EVENT, "MISSING_FIELD", false));
+        assertThat(count("settlement_decision")).isEqualTo(19);
+        assertThat(decisionOf("cbmm_20250909_000419")).isEqualTo(SettlementDecision.rejected(
+                "cbmm_20250909_000419", RejectionCode.INVALID_EVENT, "FIELD_TOO_LONG"));
         assertThat(decisionOf("cbmm_20250909_000404")).isEqualTo(SettlementDecision.rejected(
                 "cbmm_20250909_000404", RejectionCode.INVALID_EVENT, "TOO_MANY_DECIMALS"));
 

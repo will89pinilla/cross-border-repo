@@ -47,6 +47,11 @@ public final class FreshDatabase {
         return url;
     }
 
+    /** Connected as {@code accounts_owner}, the owner of the tables: only to break the database on purpose. */
+    public DataSource ownerDataSource() {
+        return new DriverManagerDataSource(url, PostgresIntegrationTest.OWNER_ROLE, PostgresIntegrationTest.OWNER_PASSWORD);
+    }
+
     /** Connected as {@code accounts_app}, like the application. */
     public DataSource appDataSource() {
         return new DriverManagerDataSource(url, PostgresIntegrationTest.APP_ROLE, PostgresIntegrationTest.APP_PASSWORD);

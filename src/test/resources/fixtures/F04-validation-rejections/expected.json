@@ -1,0 +1,84 @@
+{
+  "files": [
+    { "name": "F04-invalid-events.json", "status": "PROCESSED", "events_read": 20 }
+  ],
+  "summary": { "events_read": 20, "applied": 2, "rejected": 18, "duplicates": 0 },
+  "accounts": [
+    {
+      "account_id": "ACC123456789", "currency": "MXN", "final_balance": "199889.50",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000401", "direction": "DEBIT",
+          "amount": "100.00", "posted_at": "2025-09-09T08:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000410", "direction": "DEBIT",
+          "amount": "10.50", "posted_at": "2025-09-09T09:30:00Z" }
+      ]
+    },
+    {
+      "account_id": "ACC987654321", "currency": "USD", "final_balance": "6.08",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000401", "direction": "CREDIT",
+          "amount": "5.50", "posted_at": "2025-09-09T08:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000410", "direction": "CREDIT",
+          "amount": "0.58", "posted_at": "2025-09-09T09:30:00Z" }
+      ]
+    },
+    {
+      "account_id": "COBRE_FX_POSITION_MXN", "currency": "MXN", "final_balance": "110.50",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000401", "direction": "CREDIT",
+          "amount": "100.00", "posted_at": "2025-09-09T08:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000410", "direction": "CREDIT",
+          "amount": "10.50", "posted_at": "2025-09-09T09:30:00Z" }
+      ]
+    },
+    {
+      "account_id": "COBRE_FX_POSITION_USD", "currency": "USD", "final_balance": "-6.08",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000401", "direction": "DEBIT",
+          "amount": "5.50", "posted_at": "2025-09-09T08:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000410", "direction": "DEBIT",
+          "amount": "0.58", "posted_at": "2025-09-09T09:30:00Z" }
+      ]
+    }
+  ],
+  "rejected": [
+    { "event_id": "cbmm_20250909_000407", "file": "F04-invalid-events.json", "position": 6,
+      "code": "INVALID_EVENT", "detail": "INVALID_DATE", "decision_stored": true },
+    { "event_id": "cbmm_20250909_000402", "file": "F04-invalid-events.json", "position": 1,
+      "code": "INVALID_EVENT", "detail": "NON_POSITIVE_AMOUNT", "decision_stored": true },
+    { "event_id": "cbmm_20250909_000403", "file": "F04-invalid-events.json", "position": 2,
+      "code": "INVALID_EVENT", "detail": "NON_POSITIVE_AMOUNT", "decision_stored": true },
+    { "event_id": "cbmm_20250909_000404", "file": "F04-invalid-events.json", "position": 3,
+      "code": "INVALID_EVENT", "detail": "TOO_MANY_DECIMALS", "decision_stored": true },
+    { "event_id": "cbmm_20250909_000405", "file": "F04-invalid-events.json", "position": 4,
+      "code": "INVALID_EVENT", "detail": "SAME_CURRENCY", "decision_stored": true },
+    { "event_id": "cbmm_20250909_000406", "file": "F04-invalid-events.json", "position": 5,
+      "code": "INVALID_EVENT", "detail": "MISSING_FIELD", "decision_stored": true },
+    { "event_id": "cbmm_20250909_000408", "file": "F04-invalid-events.json", "position": 7,
+      "code": "INVALID_EVENT", "detail": "UNSUPPORTED_CURRENCY", "decision_stored": true },
+    { "event_id": "cbmm_20250909_000409", "file": "F04-invalid-events.json", "position": 8,
+      "code": "UNSUPPORTED_EVENT_TYPE", "detail": null, "decision_stored": true },
+    { "event_id": "cbmm_20250909_000411", "file": "F04-invalid-events.json", "position": 10,
+      "code": "CURRENCY_MISMATCH", "detail": "ORIGIN", "decision_stored": true },
+    { "event_id": "cbmm_20250909_000412", "file": "F04-invalid-events.json", "position": 11,
+      "code": "ACCOUNT_NOT_FOUND", "detail": "ORIGIN", "decision_stored": true },
+    { "event_id": "cbmm_20250909_000413", "file": "F04-invalid-events.json", "position": 12,
+      "code": "ACCOUNT_NOT_FOUND", "detail": "DESTINATION", "decision_stored": true },
+    { "event_id": "cbmm_20250909_000414", "file": "F04-invalid-events.json", "position": 13,
+      "code": "ACCOUNT_NOT_FOUND", "detail": "ORIGIN", "decision_stored": true },
+    { "event_id": "cbmm_20250909_000415", "file": "F04-invalid-events.json", "position": 14,
+      "code": "ACCOUNT_INACTIVE", "detail": "ORIGIN", "decision_stored": true },
+    { "event_id": "cbmm_20250909_000416", "file": "F04-invalid-events.json", "position": 15,
+      "code": "ACCOUNT_INACTIVE", "detail": "DESTINATION", "decision_stored": true },
+    { "event_id": "cbmm_20250909_000417", "file": "F04-invalid-events.json", "position": 16,
+      "code": "INVALID_EVENT", "detail": "INVALID_FORMAT", "decision_stored": true },
+    { "event_id": "cbmm_20250909_000418", "file": "F04-invalid-events.json", "position": 17,
+      "code": "INVALID_EVENT", "detail": "AMOUNT_TOO_LARGE", "decision_stored": true },
+    { "event_id": "cbmm_20250909_000419", "file": "F04-invalid-events.json", "position": 18,
+      "code": "INVALID_EVENT", "detail": "FIELD_TOO_LONG", "decision_stored": true },
+    { "event_id": null, "file": "F04-invalid-events.json", "position": 19,
+      "code": "INVALID_EVENT", "detail": "MISSING_FIELD", "decision_stored": false }
+  ],
+  "duplicates": [],
+  "invariant": { "MXN": "0.00", "USD": "0.00" }
+}

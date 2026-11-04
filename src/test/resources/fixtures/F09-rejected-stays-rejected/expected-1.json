@@ -1,0 +1,13 @@
+{
+  "files": [
+    { "name": "F09-e1.json", "status": "PROCESSED", "events_read": 1 }
+  ],
+  "summary": { "events_read": 1, "applied": 0, "rejected": 1, "duplicates": 0 },
+  "accounts": [],
+  "rejected": [
+    { "event_id": "cbmm_20250909_000901", "file": "F09-e1.json", "position": 0,
+      "code": "INSUFFICIENT_FUNDS", "detail": null, "decision_stored": true }
+  ],
+  "duplicates": [],
+  "invariant": { "MXN": "0.00", "USD": "0.00" }
+}

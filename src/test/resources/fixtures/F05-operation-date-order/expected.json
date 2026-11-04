@@ -1,0 +1,61 @@
+{
+  "files": [
+    { "name": "F05-file1.json", "status": "PROCESSED", "events_read": 1 },
+    { "name": "F05-file2.json", "status": "PROCESSED", "events_read": 2 }
+  ],
+  "summary": { "events_read": 3, "applied": 3, "rejected": 0, "duplicates": 0 },
+  "accounts": [
+    {
+      "account_id": "ACC100000001", "currency": "MXN", "final_balance": "10.00",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000502", "direction": "CREDIT",
+          "amount": "50.00", "posted_at": "2025-09-09T09:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000501", "direction": "DEBIT",
+          "amount": "80.00", "posted_at": "2025-09-09T10:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000503", "direction": "DEBIT",
+          "amount": "60.00", "posted_at": "2025-09-09T10:30:00Z" }
+      ]
+    },
+    {
+      "account_id": "ACC200000001", "currency": "USD", "final_balance": "7.70",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000501", "direction": "CREDIT",
+          "amount": "4.40", "posted_at": "2025-09-09T10:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000503", "direction": "CREDIT",
+          "amount": "3.30", "posted_at": "2025-09-09T10:30:00Z" }
+      ]
+    },
+    {
+      "account_id": "ACC200000002", "currency": "USD", "final_balance": "7.25",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000502", "direction": "DEBIT",
+          "amount": "2.75", "posted_at": "2025-09-09T09:00:00Z" }
+      ]
+    },
+    {
+      "account_id": "COBRE_FX_POSITION_MXN", "currency": "MXN", "final_balance": "90.00",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000502", "direction": "DEBIT",
+          "amount": "50.00", "posted_at": "2025-09-09T09:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000501", "direction": "CREDIT",
+          "amount": "80.00", "posted_at": "2025-09-09T10:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000503", "direction": "CREDIT",
+          "amount": "60.00", "posted_at": "2025-09-09T10:30:00Z" }
+      ]
+    },
+    {
+      "account_id": "COBRE_FX_POSITION_USD", "currency": "USD", "final_balance": "-4.95",
+      "transactions": [
+        { "source_event_id": "cbmm_20250909_000502", "direction": "CREDIT",
+          "amount": "2.75", "posted_at": "2025-09-09T09:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000501", "direction": "DEBIT",
+          "amount": "4.40", "posted_at": "2025-09-09T10:00:00Z" },
+        { "source_event_id": "cbmm_20250909_000503", "direction": "DEBIT",
+          "amount": "3.30", "posted_at": "2025-09-09T10:30:00Z" }
+      ]
+    }
+  ],
+  "rejected": [],
+  "duplicates": [],
+  "invariant": { "MXN": "0.00", "USD": "0.00" }
+}

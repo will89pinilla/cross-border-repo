@@ -173,16 +173,23 @@ public final class CbmmEventTranslator {
         return value;
     }
 
-    /** ISO 8601 with zone ({@code Z} or offset), as an instant in UTC (§6.1). Null when not valid. */
+    /**
+     * ISO 8601 with zone ({@code Z} or offset), as an instant in UTC (§6.1). Null when not valid,
+     * including a non-zero digit below the microsecond: {@code timestamptz} keeps microseconds, and
+     * the value is rejected rather than truncated (D11), so the report, {@code /transactions} and the
+     * D4 order see the same instant.
+     */
     private static Instant parseDate(JsonNode date) {
         if (date == null || !date.isString()) {
             return null;
         }
+        Instant instant;
         try {
-            return OffsetDateTime.parse(date.stringValue(), DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant();
+            instant = OffsetDateTime.parse(date.stringValue(), DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant();
         } catch (DateTimeParseException e) {
             return null;
         }
+        return instant.getNano() % 1000 == 0 ? instant : null;
     }
 
     /**

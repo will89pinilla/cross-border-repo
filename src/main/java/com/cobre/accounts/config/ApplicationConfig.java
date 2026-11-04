@@ -4,6 +4,7 @@ import com.cobre.accounts.adapters.out.events.LoggingDomainEventPublisher;
 import com.cobre.accounts.adapters.out.persistence.PostgresLoadLock;
 import com.cobre.accounts.application.port.in.LoadEventFilesUseCase;
 import com.cobre.accounts.application.port.in.PostSettlementUseCase;
+import com.cobre.accounts.application.port.out.AccountReadModel;
 import com.cobre.accounts.application.port.out.AccountRepository;
 import com.cobre.accounts.application.port.out.DomainEventPublisher;
 import com.cobre.accounts.application.port.out.JournalRepository;
@@ -50,7 +51,7 @@ class ApplicationConfig {
      */
     @Bean
     LoadEventFilesUseCase loadEventFilesUseCase(PostSettlementUseCase postSettlement, LoadLock loadLock,
-            CbmmProperties properties, DataSource dataSource) {
+            AccountReadModel readModel, CbmmProperties properties, DataSource dataSource) {
         int maxConcurrency = properties.processing().maxConcurrency();
         if (maxConcurrency < 1) {
             throw new IllegalStateException("cbmm.processing.max-concurrency must be at least 1, got " + maxConcurrency);
@@ -60,7 +61,8 @@ class ApplicationConfig {
                     + ") must be below spring.datasource.hikari.maximum-pool-size (" + hikari.getMaximumPoolSize()
                     + "): the load lock holds one more connection");
         }
-        return new LoadEventFilesService(postSettlement, loadLock, maxConcurrency, Clock.systemUTC(), UUID::randomUUID);
+        return new LoadEventFilesService(postSettlement, loadLock, readModel, maxConcurrency, Clock.systemUTC(),
+                UUID::randomUUID);
     }
 
     @Bean
