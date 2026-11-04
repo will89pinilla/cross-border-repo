@@ -212,3 +212,11 @@ Notas en progress.json:
 Luego ./gradlew build 
 </pasted_content id="2a00">
 ```
+
+### 2026-11-03 20:30 · -
+
+```text
+Lanza el ledger-reviewer SOLO sobre Money.java y MoneyTest.java (el cambio del tope de precisión).
+Si encuentra un ALTO, corrígelo en un commit nuevo "T02: fix ...". Si solo hay MEDIOS o BAJOS, anótalos en
+las notes de T03 en progress.json. Después: git push.
+```
