@@ -1,7 +1,7 @@
 {
   "deadline": "2026-11-05T08:00:00-05:00",
-  "next": "T03",
-  "last_session": "2026-11-03: T02 cerrada. Build verde (108 tests). Siguiente: T03 lector; recordar TOO_MANY_DECIMALS, FIELD_TOO_LONG y AMOUNT_TOO_LARGE antes de construir Money.",
+  "next": "T04",
+  "last_session": "2026-11-03: T03 cerrada. Build verde (230 tests). Siguiente: T04 persistencia; quitar allowEmptyShould (humano) y usar ReadEvent.hasIdentity en T05.",
   "pending_decisions": [],
   "tasks": [
     {
@@ -45,9 +45,9 @@
       ],
       "priority": "must",
       "block": "mié 4 mañana",
-      "status": "in_progress",
-      "passes": false,
-      "notes": "Notas de revisiones y decisiones de la spec para esta tarea. Detalle: docs/notes/T03.md"
+      "status": "done",
+      "passes": true,
+      "notes": "AC08/AC09/AC13: lector ✅; punta a punta pendiente en T07. 122 tests nuevos; ALTO de NumberFormatException corregido. Detalle: docs/notes/T03.md"
     },
     {
       "id": "T04",
@@ -119,7 +119,7 @@
       "block": "mié 4 noche",
       "status": "todo",
       "passes": false,
-      "notes": "/balance y /transactions con modelo de lectura propio, sin EntryLine (EntryLine solo se construye desde su Account). Saldo de Cobre: SUM(...) en SQL y conversión a Money una sola vez al final; nunca sumar línea por línea con Money.plus (spec §9)."
+      "notes": "Lecturas sin EntryLine y saldo de Cobre con SUM en SQL. Completar expected.json de F04/F06 y AC08/AC09/AC13 por la API; ampliar F04; wiring de cbmm.currencies. Detalle: docs/notes/T07.md"
     },
     {
       "id": "T08",

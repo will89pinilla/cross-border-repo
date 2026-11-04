@@ -226,3 +226,95 @@ las notes de T03 en progress.json. Después: git push.
 ```text
 /next-task
 ```
+
+### 2026-11-03 20:55 · -
+
+```text
+/next-task
+```
+
+### 2026-11-03 21:01 · T03
+
+```text
+/next-task T03
+```
+
+### 2026-11-03 21:14 · T03
+
+```text
+vuelve a preguntar
+```
+
+### 2026-11-03 21:19 · T03
+
+```text
+<pasted_content id="ccc7">
+Ya actualicé la spec: INVALID_FORMAT en §7.2 y la heurística de detección por líneas en §6.2.
+event_type ausente o no textual = UNSUPPORTED_EVENT_TYPE (lectura literal de la regla 1).
+
+OK al plan de T03, con estas condiciones:
+
+1. Alcance: AC08, AC09 y AC13 se prueban a nivel del lector y del traductor.
+   - Al cerrar T03, en progress.json: passes true para T03, y en sus notes la frase
+     "AC08/AC09/AC13: lector ✅; punta a punta pendiente en T07".
+   - En docs/notes/T07.md (créalo si no existe): "Completar expected.json de F04 y F06 y probar AC08, AC09
+     y AC13 por la API". En notes de T07 deja solo un resumen corto con el enlace (máx. 300 caracteres).
+
+2. Fixtures F04 (parte de AC08 y AC09) y F06: crea ahora los archivos de entrada y su README con la skill
+   add-fixture. El expected.json de punta a punta se completa en T07, calculado desde la spec.
+
+3. Límite de 1000 caracteres de Jackson: dime qué pasa con un número JSON de más de 1000 dígitos dentro
+   de un arreglo. Si hace UNREADABLE todo el archivo, me sirve, pero déjalo con un test y una línea en
+   docs/notes/T03.md para defenderlo. No subas el límite de Jackson.
+
+4. Tests nuevos por las decisiones de la spec:
+   - INVALID_FORMAT: amount "abc", amount true, account_id numérico, origin como texto.
+   - Detección: NDJSON con la línea 0 rota (MALFORMED_JSON en la línea 0, las demás se leen)
+     y un objeto truncado de varias líneas (UNREADABLE).
+
+Adelante: test primero por criterio y ./gradlew build al final.
+</pasted_content id="ccc7">
+```
+
+### 2026-11-03 21:59 · T03
+
+```text
+<pasted_content id="ccc7">
+Revisé los README de F04 y F06: los resultados esperados, el orden D4 de los rechazos, los saldos y el
+invariante coinciden con la spec.
+Ya pasé a la spec §7.2 tus decisiones: el orden de los detalles en la regla 2 y dentro del monto,
+null o blanco = MISSING_FIELD, y operation_date no textual = INVALID_DATE.
+
+Agrega en docs/notes/T07.md: "Ampliar F04 con eventos de INVALID_FORMAT, AMOUNT_TOO_LARGE, FIELD_TOO_LONG
+y uno sin event_id (se reporta por posición, sin decisión), recalculando su README".
+
+/close-task, con un ajuste: además del spec-reviewer, lanza en paralelo el ledger-reviewer
+SOLO sobre AmountText y su test (cómo entra el dinero: D11, sin double y sin redondeo).
+</pasted_content id="ccc7">
+```
+
+### 2026-11-03 22:03 · T03
+
+```text
+/close-task T03 — además del spec-reviewer, lanza en paralelo el ledger-reviewer SOLO sobre AmountText.java y CbmmEventTranslatorTest.java (cómo entra el dinero: D11, sin double y sin redondeo)
+```
+
+### 2026-11-03 22:10 · T03
+
+```text
+<pasted_content id="ccc7">
+Ya actualicé la spec §7.2:
+1. event_type sale del orden de la regla 2 (lo decide la regla 1).
+2. La regla de identidad decide si se guarda la decisión, no el código: event_type inválido y sin event_id
+   sale UNSUPPORTED_EVENT_TYPE y no guarda decisión.
+3. Un event_id que no es texto sale INVALID_FORMAT y no guarda decisión. Agrega su test.
+4. Nada que hacer.
+5. Agrega ahora los tests BAJOS de AmountText: "10.005E1" → 100.05, "0.5E-2" → TOO_MANY_DECIMALS,
+   el mínimo 0.01, "-abc" → INVALID_FORMAT, "-1E+999999999" → NON_POSITIVE_AMOUNT, dígitos no ASCII,
+   el borde 1E-2147483647 → TOO_MANY_DECIMALS y un número largo (~600 caracteres) con exponente desbordado.
+   La escala negativa de AmountText.Valid queda solo como nota en docs/notes/T03.md.
+   Como son solo tests, no hace falta otra pasada de revisión.
+
+Corre ./gradlew build y termina el cierre: docs/ai-usage/T03.md, progress.json y propón el commit.
+</pasted_content id="ccc7">
+```

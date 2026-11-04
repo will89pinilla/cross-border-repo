@@ -1,0 +1,71 @@
+[
+  {
+    "event_id": "cbmm_20250909_000401",
+    "event_type": "cross_border_money_movement",
+    "operation_date": "2025-09-09T08:00:00Z",
+    "origin": { "account_id": "ACC123456789", "currency": "MXN", "amount": 100.00 },
+    "destination": { "account_id": "ACC987654321", "currency": "USD", "amount": 5.50 }
+  },
+  {
+    "event_id": "cbmm_20250909_000402",
+    "event_type": "cross_border_money_movement",
+    "operation_date": "2025-09-09T08:10:00Z",
+    "origin": { "account_id": "ACC123456789", "currency": "MXN", "amount": 0 },
+    "destination": { "account_id": "ACC987654321", "currency": "USD", "amount": 5.50 }
+  },
+  {
+    "event_id": "cbmm_20250909_000403",
+    "event_type": "cross_border_money_movement",
+    "operation_date": "2025-09-09T08:20:00Z",
+    "origin": { "account_id": "ACC123456789", "currency": "MXN", "amount": 100.00 },
+    "destination": { "account_id": "ACC987654321", "currency": "USD", "amount": -5.50 }
+  },
+  {
+    "event_id": "cbmm_20250909_000404",
+    "event_type": "cross_border_money_movement",
+    "operation_date": "2025-09-09T08:30:00Z",
+    "origin": { "account_id": "ACC123456789", "currency": "MXN", "amount": 10.005 },
+    "destination": { "account_id": "ACC987654321", "currency": "USD", "amount": 0.55 }
+  },
+  {
+    "event_id": "cbmm_20250909_000405",
+    "event_type": "cross_border_money_movement",
+    "operation_date": "2025-09-09T08:40:00Z",
+    "origin": { "account_id": "ACC123456789", "currency": "MXN", "amount": 100.00 },
+    "destination": { "account_id": "ACC987654321", "currency": "MXN", "amount": 100.00 }
+  },
+  {
+    "event_id": "cbmm_20250909_000406",
+    "event_type": "cross_border_money_movement",
+    "operation_date": "2025-09-09T08:50:00Z",
+    "origin": { "account_id": "ACC123456789", "currency": "MXN", "amount": 100.00 }
+  },
+  {
+    "event_id": "cbmm_20250909_000407",
+    "event_type": "cross_border_money_movement",
+    "operation_date": "2025-09-09 09:00:00",
+    "origin": { "account_id": "ACC123456789", "currency": "MXN", "amount": 100.00 },
+    "destination": { "account_id": "ACC987654321", "currency": "USD", "amount": 5.50 }
+  },
+  {
+    "event_id": "cbmm_20250909_000408",
+    "event_type": "cross_border_money_movement",
+    "operation_date": "2025-09-09T09:10:00Z",
+    "origin": { "account_id": "ACC123456789", "currency": "EUR", "amount": 100.00 },
+    "destination": { "account_id": "ACC987654321", "currency": "USD", "amount": 5.50 }
+  },
+  {
+    "event_id": "cbmm_20250909_000409",
+    "event_type": "cross_border_refund",
+    "operation_date": "2025-09-09T09:20:00Z",
+    "origin": { "account_id": "ACC123456789", "currency": "MXN", "amount": 100.00 },
+    "destination": { "account_id": "ACC987654321", "currency": "USD", "amount": 5.50 }
+  },
+  {
+    "event_id": "cbmm_20250909_000410",
+    "event_type": "cross_border_money_movement",
+    "operation_date": "2025-09-09T09:30:00Z",
+    "origin": { "account_id": "ACC123456789", "currency": "MXN", "amount": "10.500" },
+    "destination": { "account_id": "ACC987654321", "currency": "USD", "amount": 0.58 }
+  }
+]

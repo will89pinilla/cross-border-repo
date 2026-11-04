@@ -245,6 +245,7 @@ Un archivo puede tener cualquiera de estas tres formas, y el lector la detecta a
 | Un evento por línea (NDJSON) | El primer carácter no blanco es `{` y después del primer objeto hay más contenido |
 
 - Si un arreglo o un objeto no es JSON válido, el archivo completo se reporta `UNREADABLE` y no se aplica ninguno de sus eventos.
+- Si el archivo empieza con `{` y su primer objeto no se puede leer, es NDJSON cuando alguna de sus líneas, sola, es un objeto JSON completo; entonces esa primera línea sale `INVALID_EVENT` / `MALFORMED_JSON` y las demás se procesan. Si ninguna línea lo es, es un objeto truncado y el archivo sale `UNREADABLE`.
 - En NDJSON, una línea que no es JSON válido es un evento `INVALID_EVENT` con detalle `MALFORMED_JSON`; las demás líneas se procesan.
 - La posición de un evento es su índice, empezando en 0, dentro del arreglo o de las líneas no vacías del archivo.
 - Límites configurables: 50 MB por archivo, 200 MB por carga, 1,000,000 eventos por carga. Superarlos responde 413.
@@ -291,7 +292,7 @@ Un evento recibe un solo código de rechazo: el de la primera regla que falla, e
 | # | Regla | Código | Detalle |
 | --- | --- | --- | --- |
 | 1 | `event_type` es `cross_border_money_movement` | `UNSUPPORTED_EVENT_TYPE` | — |
-| 2 | Campos obligatorios presentes y con formato válido | `INVALID_EVENT` | `MALFORMED_JSON`, `MISSING_FIELD`, `INVALID_DATE`, `UNSUPPORTED_CURRENCY`, `NON_POSITIVE_AMOUNT`, `TOO_MANY_DECIMALS`, `SAME_CURRENCY`, `AMOUNT_TOO_LARGE` (más de 17 dígitos enteros), `FIELD_TOO_LONG` (`account_id` > 64 o `event_id` > 128 caracteres) |
+| 2 | Campos obligatorios presentes y con formato válido | `INVALID_EVENT` | `MALFORMED_JSON`, `MISSING_FIELD`, `INVALID_FORMAT` (campo presente con un tipo o formato inválido: `amount` `"abc"` o `true`, `account_id` numérico, `origin` como texto), `INVALID_DATE`, `UNSUPPORTED_CURRENCY`, `NON_POSITIVE_AMOUNT`, `TOO_MANY_DECIMALS`, `SAME_CURRENCY`, `AMOUNT_TOO_LARGE` (más de 17 dígitos enteros), `FIELD_TOO_LONG` (`account_id` > 64 o `event_id` > 128 caracteres) |
 | 3 | La cuenta origen existe y es `CLIENT`, y luego la destino (con D7 apagado). Una cuenta de Cobre (`COBRE_*`) no se puede usar desde un evento y se trata como inexistente | `ACCOUNT_NOT_FOUND` | `ORIGIN` o `DESTINATION` |
 | 4 | La moneda de cada pata coincide con la de su cuenta, origen primero | `CURRENCY_MISMATCH` | `ORIGIN` o `DESTINATION` |
 | 5 | Las dos cuentas están `ACTIVE`, origen primero | `ACCOUNT_INACTIVE` | `ORIGIN` o `DESTINATION` |
@@ -300,8 +301,10 @@ Un evento recibe un solo código de rechazo: el de la primera regla que falla, e
 - Las reglas 1 y 2 se evalúan al leer el archivo; las 3 a 6, dentro de la transacción del evento. Un evento que falló la regla 1 o 2 igual pasa por su transacción, para guardar su decisión `REJECTED` (D6).
 - Antes de cualquier regla, un `event_id` que ya tiene decisión se reporta como duplicado, sin importar su contenido.
 - Un rechazo no modifica ningún saldo ni crea líneas.
+- Dentro de la regla 2, si un evento tiene varios errores, el detalle es el del primer campo que falla en el orden de §6.1 (`event_id`, `operation_date`, `origin`, `destination`; `event_type` no entra porque lo decide la regla 1); `SAME_CURRENCY` se evalúa al final. En un monto, el orden es `INVALID_FORMAT`, `NON_POSITIVE_AMOUNT`, `TOO_MANY_DECIMALS`, `AMOUNT_TOO_LARGE`.
+- Un campo `null` o un texto en blanco cuentan como ausentes (`MISSING_FIELD`). Una `operation_date` que no es texto sale `INVALID_DATE`, el detalle más específico para ese campo.
 - Si origen y destino son la misma cuenta, las monedas de las patas difieren (regla 2), así que la regla 4 la rechaza con `CURRENCY_MISMATCH` / `DESTINATION`.
-- Un evento sin `event_id` se rechaza con `INVALID_EVENT` / `MISSING_FIELD`, se reporta por archivo y posición, y no guarda decisión, porque no tiene identidad. Lo mismo vale para un `event_id` de más de 128 caracteres (`FIELD_TOO_LONG`): no se puede guardar como identidad.
+- Un evento sin `event_id` se rechaza con `INVALID_EVENT` / `MISSING_FIELD`, se reporta por archivo y posición, y no guarda decisión, porque no tiene identidad. Lo mismo vale para un `event_id` de más de 128 caracteres (`FIELD_TOO_LONG`) o que no es texto (`INVALID_FORMAT`): no se puede guardar como identidad. Esta regla decide si se guarda la decisión, no el código de rechazo: un evento con `event_type` inválido y sin `event_id` sale `UNSUPPORTED_EVENT_TYPE` (la regla 1 va primero) y tampoco guarda decisión.
 - Con D7 encendido, la regla 3 no rechaza: crea la cuenta desconocida como `CLIENT`, `ACTIVE`, saldo 0 y la moneda de su pata, dentro de la misma transacción. Si era la cuenta origen, la regla 6 la rechaza. Un evento rechazado no crea cuentas: la cuenta solo se guarda si el evento se aplica (un rechazo no tiene efectos, igual que con saldos y líneas). D7 nunca crea una cuenta con prefijo `COBRE_`: esa pata se rechaza con `ACCOUNT_NOT_FOUND`.
 - Por qué las cuentas de Cobre se tratan como inexistentes: son internas y no direccionables desde fuera. No tienen saldo guardado ni validación de fondos (D10), así que usarlas como origen permitiría mover dinero sin respaldo. Responder `ACCOUNT_NOT_FOUND` tampoco revela que existen.
 
