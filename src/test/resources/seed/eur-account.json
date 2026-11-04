@@ -1,0 +1,5 @@
+{
+  "accounts": [
+    { "account_id": "ACC_EUR", "currency": "EUR", "status": "ACTIVE", "initial_balance": "25.00" }
+  ]
+}

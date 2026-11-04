@@ -318,3 +318,43 @@ Ya actualicé la spec §7.2:
 Corre ./gradlew build y termina el cierre: docs/ai-usage/T03.md, progress.json y propón el commit.
 </pasted_content id="ccc7">
 ```
+
+### 2026-11-04 09:13 · -
+
+```text
+/next-task
+```
+
+### 2026-11-04 09:19 · T04
+
+```text
+/next-task T04
+```
+
+### 2026-11-04 09:29 · T04
+
+```text
+<pasted_content id="b995">
+Ya actualicé la spec:
+- §7.3: 3 intentos en total (el original y 2 reintentos), esperas de 50 y 100 ms, jitter uniforme de 0 a 50 %
+  de cada espera. Ningún otro error se reintenta.
+- §6.3: una moneda de la semilla que no está en cbmm.currencies impide el arranque, con mensaje claro (como B5).
+  El saldo guardado de una cuenta CLIENT de la semilla es igual a la suma de sus líneas de apertura,
+  y BLOCKED o CLOSED también reciben su apertura (tu decisión 2).
+
+OK al plan de T04, con dos ajustes:
+1. SeedLoaderTest: después de la semilla, el balance guardado de cada cuenta CLIENT es igual a la suma
+   de sus líneas, y la suma por moneda de todas las cuentas es 0 (AC12).
+2. JdbcUnitOfWorkTest: una DecisionAlreadyExistsException (23505) revierte la transacción y NO se reintenta.
+   Agrega a docs/notes/T05.md: "PostSettlement atrapa DecisionAlreadyExistsException fuera de la transacción
+   y reporta el evento como duplicado".
+
+Adelante: test primero y ./gradlew build al final.
+</pasted_content id="b995">
+```
+
+### 2026-11-04 09:51 · T04
+
+```text
+/close-task
+```

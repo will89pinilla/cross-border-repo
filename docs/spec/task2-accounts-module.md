@@ -225,7 +225,8 @@ Estructura definida por el caso:
 
 | Campo | Regla |
 | --- | --- |
-| `event_id` | Obligatorio, texto no vacío; identidad del evento (D6) |
+| `event_id` | Obligatorio, texto no vacío; identidad del evento (D6). Solo caracteres ASCII imprimibles sin espacios; si no, `INVALID_FORMAT` |
+| `account_id` (de `origin` y `destination`) | Solo caracteres ASCII imprimibles sin espacios; si no, `INVALID_FORMAT`. Así el orden de Java y el de `COLLATE "C"` coinciden siempre (D12) |
 | `event_type` | Obligatorio; el único tipo soportado es `cross_border_money_movement` |
 | `operation_date` | Obligatorio; ISO 8601 con zona (`Z` u offset); se guarda como `Instant` en UTC |
 | `origin`, `destination` | Obligatorios, cada uno con `account_id`, `currency` y `amount` |
@@ -264,10 +265,11 @@ Al arrancar, el módulo lee `cbmm.seed.path` (por defecto `classpath:seed/accoun
 ```
 
 - Por cada moneda de `cbmm.currencies` se crean `COBRE_FX_POSITION_<moneda>` y `COBRE_FUNDING_<moneda>` si no existen.
-- Por cada cuenta de la semilla que no existe: se crea como `CLIENT` y, si `initial_balance` es mayor que 0, se registra un asiento de apertura con `source_event_id = opening_<account_id>`: débito en `COBRE_FUNDING_<moneda>` y crédito en la cuenta (D9). Los asientos de apertura no generan SettlementDecision, porque no son eventos CBMM.
+- Por cada cuenta de la semilla que no existe: se crea como `CLIENT` y, si `initial_balance` es mayor que 0, se registra un asiento de apertura con `source_event_id = opening_<account_id>`: débito en `COBRE_FUNDING_<moneda>` y crédito en la cuenta (D9). Su `posted_at` es fijo, `1970-01-01T00:00:00Z`, para que la apertura sea siempre la primera línea de la cuenta y el resultado no dependa de la hora del arranque. Los asientos de apertura no generan SettlementDecision, porque no son eventos CBMM.
 - Una cuenta que ya existe no se modifica. Volver a arrancar no duplica nada.
 - `status` acepta `ACTIVE`, `BLOCKED` y `CLOSED`.
-- Un `account_id` con prefijo `COBRE_` en la semilla es un error de configuración: el servicio no arranca y lo indica en el log.
+- Un `account_id` con prefijo `COBRE_` en la semilla es un error de configuración: el servicio no arranca y lo indica en el log. Lo mismo vale para una cuenta cuya moneda no está en `cbmm.currencies` y para un `account_id` repetido dentro de la semilla. La semilla se valida completa antes de escribir: si tiene un error, no se guarda nada.
+- El saldo guardado de una cuenta `CLIENT` creada por la semilla es igual a la suma de sus líneas de apertura (AC12). La apertura no pasa por la regla de cuentas `ACTIVE`: una cuenta `BLOCKED` o `CLOSED` también recibe su saldo inicial.
 - Para empezar de cero se borra el volumen de la base (`docker compose down -v`); no existe un endpoint que borre datos (D13).
 
 ## 7. Procesamiento
@@ -292,7 +294,7 @@ Un evento recibe un solo código de rechazo: el de la primera regla que falla, e
 | # | Regla | Código | Detalle |
 | --- | --- | --- | --- |
 | 1 | `event_type` es `cross_border_money_movement` | `UNSUPPORTED_EVENT_TYPE` | — |
-| 2 | Campos obligatorios presentes y con formato válido | `INVALID_EVENT` | `MALFORMED_JSON`, `MISSING_FIELD`, `INVALID_FORMAT` (campo presente con un tipo o formato inválido: `amount` `"abc"` o `true`, `account_id` numérico, `origin` como texto), `INVALID_DATE`, `UNSUPPORTED_CURRENCY`, `NON_POSITIVE_AMOUNT`, `TOO_MANY_DECIMALS`, `SAME_CURRENCY`, `AMOUNT_TOO_LARGE` (más de 17 dígitos enteros), `FIELD_TOO_LONG` (`account_id` > 64 o `event_id` > 128 caracteres) |
+| 2 | Campos obligatorios presentes y con formato válido | `INVALID_EVENT` | `MALFORMED_JSON`, `MISSING_FIELD`, `RESERVED_EVENT_ID` (`event_id` que empieza con `opening_`, el prefijo de los asientos de apertura, §6.3), `INVALID_FORMAT` (campo presente con un tipo o formato inválido: `amount` `"abc"` o `true`, `account_id` numérico, `origin` como texto), `INVALID_DATE`, `UNSUPPORTED_CURRENCY`, `NON_POSITIVE_AMOUNT`, `TOO_MANY_DECIMALS`, `SAME_CURRENCY`, `AMOUNT_TOO_LARGE` (más de 17 dígitos enteros), `FIELD_TOO_LONG` (`account_id` > 64 o `event_id` > 128 caracteres) |
 | 3 | La cuenta origen existe y es `CLIENT`, y luego la destino (con D7 apagado). Una cuenta de Cobre (`COBRE_*`) no se puede usar desde un evento y se trata como inexistente | `ACCOUNT_NOT_FOUND` | `ORIGIN` o `DESTINATION` |
 | 4 | La moneda de cada pata coincide con la de su cuenta, origen primero | `CURRENCY_MISMATCH` | `ORIGIN` o `DESTINATION` |
 | 5 | Las dos cuentas están `ACTIVE`, origen primero | `ACCOUNT_INACTIVE` | `ORIGIN` o `DESTINATION` |
@@ -338,7 +340,7 @@ Transacción de cada evento:
 
 La clave primaria de `settlement_decision` respalda el paso 1: si dos procesos decidieran el mismo `event_id`, el segundo insert falla, su transacción se revierte completa y el evento se reporta como duplicado.
 
-Un deadlock (`40P01`) o una falla de serialización (`40001`) se reintenta hasta 3 veces, con espera de 50 ms que se duplica en cada intento, más jitter. Si el tercer intento falla, la carga se interrumpe con 500 y los eventos ya decididos se conservan. Volver a enviar los mismos archivos continúa la carga: lo ya decidido sale como duplicado (D6).
+Un deadlock (`40P01`) o una falla de serialización (`40001`) se intenta como máximo 3 veces en total (el intento original y 2 reintentos), con esperas de 50 ms y 100 ms más un jitter aleatorio uniforme de entre 0 % y 50 % de cada espera. Ningún otro error se reintenta. Si el tercer intento falla, la carga se interrumpe con 500 y los eventos ya decididos se conservan. Volver a enviar los mismos archivos continúa la carga: lo ya decidido sale como duplicado (D6).
 
 ### 7.4 Concurrencia determinística (D5)
 
@@ -431,7 +433,7 @@ Con D6, en el paso 4 el módulo encuentra la decisión `REJECTED` de E1, lo repo
 | --- | --- | --- |
 | `files` | Cada archivo con estado `PROCESSED` o `UNREADABLE` y eventos leídos | Por nombre |
 | `summary` | Conteos de la carga | — |
-| `accounts` | Cada cuenta con líneas en esta carga, incluidas las de Cobre: saldo final acumulado y las líneas de esta carga | Cuentas por `account_id`; líneas por `posted_at` y `source_event_id` |
+| `accounts` | Cada cuenta con líneas en esta carga, incluidas las de Cobre: saldo final acumulado y las líneas de esta carga | Cuentas por `account_id`; líneas por `posted_at`, `source_event_id` y número de línea |
 | `rejected` | `event_id`, archivo, posición, código y detalle | Orden de D4 |
 | `duplicates` | `event_id`, archivo, posición, decisión original y `payload_mismatch` | Orden de D4 |
 | `invariant` | Suma de saldos de todas las cuentas por moneda; siempre `"0.00"` | Por moneda |
@@ -446,7 +448,7 @@ Con D6, en el paso 4 el módulo encuentra la decisión `REJECTED` de E1, lo repo
 | --- | --- |
 | `POST /v1/event-files` (multipart, campo `files`, uno o más archivos) | 200 con el reporte; 400 `NO_FILES` sin archivos; 409 `LOAD_IN_PROGRESS` si hay otra carga en curso; 413 si supera los límites de 6.2 |
 | `GET /v1/accounts/{account_id}/balance` | 200 con `account_id`, `type`, `status`, `currency` y `balance`; 404 `ACCOUNT_NOT_FOUND` |
-| `GET /v1/accounts/{account_id}/transactions?limit=100&offset=0` | 200 con las líneas de la cuenta ordenadas por `posted_at` y `source_event_id`, y el `total`; `limit` máximo 1,000; 404 `ACCOUNT_NOT_FOUND` |
+| `GET /v1/accounts/{account_id}/transactions?limit=100&offset=0` | 200 con las líneas de la cuenta ordenadas por `posted_at`, `source_event_id` y número de línea, y el `total`; `limit` máximo 1,000; 404 `ACCOUNT_NOT_FOUND` |
 | `GET /actuator/health`, `GET /actuator/prometheus` | Salud y métricas |
 | `/swagger-ui.html` | Documentación interactiva de la API |
 

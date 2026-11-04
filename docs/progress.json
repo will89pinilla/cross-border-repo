@@ -1,7 +1,7 @@
 {
   "deadline": "2026-11-05T08:00:00-05:00",
-  "next": "T04",
-  "last_session": "2026-11-03: T03 cerrada. Build verde (230 tests). Siguiente: T04 persistencia; quitar allowEmptyShould (humano) y usar ReadEvent.hasIdentity en T05.",
+  "next": "T05",
+  "last_session": "2026-11-04: T04 cerrada. Build verde (296 tests). Siguiente: T05; antes, regla ASCII y RESERVED_EVENT_ID en el traductor (docs/notes/T05.md).",
   "pending_decisions": [],
   "tasks": [
     {
@@ -61,9 +61,9 @@
       ],
       "priority": "must",
       "block": "mié 4 mañana",
-      "status": "todo",
-      "passes": false,
-      "notes": "Notas de revisiones y decisiones de la spec para esta tarea. Detalle: docs/notes/T04.md"
+      "status": "done",
+      "passes": true,
+      "notes": "AC18 en verde; 66 tests nuevos (repos, UnitOfWork con deadlock real, semilla con AC12 y arranque Spring). Pendientes en notes T05/T07."
     },
     {
       "id": "T05",

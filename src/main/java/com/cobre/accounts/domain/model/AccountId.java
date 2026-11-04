@@ -33,10 +33,27 @@ public record AccountId(String value) implements Comparable<AccountId> {
         return value.startsWith(COBRE_PREFIX);
     }
 
-    /** Lock order of D12: ascending account_id. */
+    /**
+     * Lock order of D12: ascending account_id by Unicode code point. That is the byte order of
+     * UTF-8, i.e. PostgreSQL's {@code COLLATE "C"}; {@link String#compareTo} (UTF-16 units) differs
+     * from it outside the Basic Multilingual Plane.
+     */
     @Override
     public int compareTo(AccountId other) {
-        return value.compareTo(other.value);
+        String a = value;
+        String b = other.value;
+        int i = 0;
+        int j = 0;
+        while (i < a.length() && j < b.length()) {
+            int ca = a.codePointAt(i);
+            int cb = b.codePointAt(j);
+            if (ca != cb) {
+                return Integer.compare(ca, cb);
+            }
+            i += Character.charCount(ca);
+            j += Character.charCount(cb);
+        }
+        return Integer.compare(a.length() - i, b.length() - j);
     }
 
     @Override

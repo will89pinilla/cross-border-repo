@@ -30,6 +30,18 @@ class AccountTest {
         assertThat(ACC_MXN.isCobreReserved()).isFalse();
     }
 
+    /** D12 lock order = code point order = byte order of UTF-8, the order of COLLATE "C". */
+    @Test
+    void accountId_ordersByCodePoint() {
+        AccountId halfwidth = AccountId.of("X｡");     // U+FF61
+        AccountId emoji = AccountId.of("X😀");   // U+1F600, a surrogate pair in UTF-16
+        assertThat(halfwidth.compareTo(emoji)).isNegative();
+        assertThat(emoji.compareTo(halfwidth)).isPositive();
+        assertThat(AccountId.of("ACC_c").compareTo(AccountId.of("Acc_a"))).isNegative();
+        assertThat(AccountId.of("acc").compareTo(AccountId.of("acc_b"))).isNegative();
+        assertThat(AccountId.of("acc").compareTo(AccountId.of("acc"))).isZero();
+    }
+
     @Test
     void client_debitAndCredit_followBalanceConvention() {
         // balance = credits - debits (spec §2)

@@ -1,0 +1,6 @@
+{
+  "accounts": [
+    { "account_id": "ACC_STARTUP", "currency": "MXN", "status": "ACTIVE", "initial_balance": "10.00" },
+    { "account_id": "COBRE_FX_POSITION_MXN", "currency": "MXN", "status": "ACTIVE", "initial_balance": "1.00" }
+  ]
+}

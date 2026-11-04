@@ -20,8 +20,8 @@ public abstract class PostgresIntegrationTest {
 
     protected static final String OWNER_ROLE = "accounts_owner";
     protected static final String APP_ROLE = "accounts_app";
-    private static final String OWNER_PASSWORD = "owner_test_pw";
-    private static final String APP_PASSWORD = "app_test_pw";
+    static final String OWNER_PASSWORD = "owner_test_pw";
+    static final String APP_PASSWORD = "app_test_pw";
 
     protected static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18")
             .withDatabaseName("accounts")
