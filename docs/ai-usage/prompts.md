@@ -220,3 +220,9 @@ Lanza el ledger-reviewer SOLO sobre Money.java y MoneyTest.java (el cambio del t
 Si encuentra un ALTO, corrígelo en un commit nuevo "T02: fix ...". Si solo hay MEDIOS o BAJOS, anótalos en
 las notes de T03 en progress.json. Después: git push.
 ```
+
+### 2026-11-03 20:52 · -
+
+```text
+/next-task
+```

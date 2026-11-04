@@ -464,7 +464,7 @@ Migración Flyway `V1__accounts_schema.sql`:
 | `journal_entry` | `entry_id` uuid, `source_event_id`, `posted_at`, `recorded_at` | PK `entry_id`; `source_event_id` único |
 | `entry_line` | `entry_id`, `line_no` smallint, `account_id`, `direction`, `amount` numeric(19,2), `currency` char(3), `posted_at` | PK `(entry_id, line_no)`; `amount > 0`; índice `(account_id, posted_at, entry_id)` ; FK (account_id, currency) → account(account_id, currency): la moneda de cada línea es la de su cuenta (§3.4) |
 
-- Saldo de una cuenta de Cobre: suma de sus líneas, con `CREDIT` positivo y `DEBIT` negativo.
+- Saldo de una cuenta de Cobre: suma de sus líneas, con `CREDIT` positivo y `DEBIT` negativo. Se calcula con `SUM` en SQL y se convierte a `Money` una sola vez al final, nunca sumando línea por línea con `Money.plus`, para que el resultado no dependa del orden de las líneas. No tiene tope propio.
 - Roles: Flyway corre como `accounts_owner`. La aplicación se conecta como `accounts_app`, con SELECT e INSERT sobre `account` y UPDATE solo sobre su columna `balance` (tipo, moneda y estado no cambian, §3.4), y solo SELECT e INSERT sobre `settlement_decision`, `journal_entry` y `entry_line` (D13).
 
 ## 10. Criterios de aceptación

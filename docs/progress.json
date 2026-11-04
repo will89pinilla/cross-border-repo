@@ -63,7 +63,7 @@
       "block": "mié 4 mañana",
       "status": "todo",
       "passes": false,
-      "notes": "Antes de /close-task: el humano quita allowEmptyShould de ArchitectureTest. M2: el orden de locks lo fija Java (AccountId.compareTo = String.compareTo) Y el SQL usa ORDER BY account_id COLLATE \"C\", siempre las dos; test con ids en mayúsculas y minúsculas. Lecturas (balance, líneas) con modelo de lectura propio, sin EntryLine. B5: semilla con id COBRE_* hace fallar el arranque con mensaje claro."
+      "notes": "Antes de /close-task: el humano quita allowEmptyShould de ArchitectureTest. M2: el orden de locks lo fija Java (AccountId.compareTo = String.compareTo) Y el SQL usa ORDER BY account_id COLLATE \"C\", siempre las dos; test con ids en mayúsculas y minúsculas. Lecturas (balance, líneas) con modelo de lectura propio, sin EntryLine. B5: semilla con id COBRE_* hace fallar el arranque con mensaje claro. Saldo de Cobre: SUM(...) en SQL y conversión a Money una sola vez al final; nunca sumar línea por línea con Money.plus (spec §9)."
     },
     {
       "id": "T05",
@@ -119,7 +119,7 @@
       "block": "mié 4 noche",
       "status": "todo",
       "passes": false,
-      "notes": "/balance y /transactions con modelo de lectura propio, sin EntryLine (EntryLine solo se construye desde su Account)."
+      "notes": "/balance y /transactions con modelo de lectura propio, sin EntryLine (EntryLine solo se construye desde su Account). Saldo de Cobre: SUM(...) en SQL y conversión a Money una sola vez al final; nunca sumar línea por línea con Money.plus (spec §9)."
     },
     {
       "id": "T08",
