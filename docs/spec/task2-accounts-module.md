@@ -562,6 +562,7 @@ Configuración:
 | `cbmm.processing.max-concurrency` | `16` |
 | `spring.datasource.hikari.maximum-pool-size` | `20` |
 | `server.tomcat.max-part-count` | `1000` (límite de archivos por carga de §6.2; cuenta partes del multipart, no solo archivos) |
+| Heap de la JVM (`-Xmx`) | `2g` en la demo y en `./gradlew benchmark`. Medido en T08: leer una carga en los límites de §6.2 retiene ~1 GB (200 MB ≈ 750,000 eventos); la carga completa en esos límites no se midió de punta a punta |
 | `spring.servlet.multipart.max-file-size` / `max-request-size` | `50MB` / `200MB` |
 | `cbmm.upload.max-events-per-load` | `1000000` |
 

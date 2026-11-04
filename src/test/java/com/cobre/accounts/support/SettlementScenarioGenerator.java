@@ -7,9 +7,12 @@ import com.cobre.accounts.domain.model.CurrencyCode;
 import com.cobre.accounts.domain.model.Money;
 import com.cobre.accounts.domain.model.PostSettlement;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -21,7 +24,8 @@ import java.util.Random;
  * the business rejections of rules 3 to 6: unknown accounts, COBRE_ ids, currency mismatches,
  * BLOCKED/CLOSED accounts and amounts above the balance.
  *
- * <p>T08 extends this class (event files for F07 and the sequential oracle); it does not copy it.
+ * <p>{@link #seedJson} and {@link #eventFiles} write a scenario as the seed and event files of F07;
+ * {@link SequentialOracle} is its reference result.
  */
 public final class SettlementScenarioGenerator {
 
@@ -55,9 +59,14 @@ public final class SettlementScenarioGenerator {
         for (int i = 0; i < accountCount; i++) {
             accounts.add(account(i));
         }
+        // Filtering draws no random numbers, so grouping once gives the same scenario as filtering per event.
+        Map<CurrencyCode, List<Account>> byCurrency = new LinkedHashMap<>();
+        for (CurrencyCode currency : CURRENCIES) {
+            byCurrency.put(currency, accounts.stream().filter(a -> a.currency().equals(currency)).toList());
+        }
         List<PostSettlement> settlements = new ArrayList<>(settlementCount);
         for (int i = 0; i < settlementCount; i++) {
-            settlements.add(settlement(i, accounts));
+            settlements.add(settlement(i, accounts, byCurrency));
         }
         return new Scenario(seed, accounts, settlements);
     }
@@ -74,11 +83,11 @@ public final class SettlementScenarioGenerator {
         return Account.client(AccountId.of("ACC%09d".formatted(index)), currency, status, balance);
     }
 
-    private PostSettlement settlement(int index, List<Account> accounts) {
+    private PostSettlement settlement(int index, List<Account> accounts, Map<CurrencyCode, List<Account>> byCurrency) {
         CurrencyCode paid = CURRENCIES.get(random.nextInt(CURRENCIES.size()));
         CurrencyCode received = paid.equals(MXN) ? USD : MXN;
-        AccountId origin = pickAccount(accounts, paid);
-        AccountId destination = pickAccount(accounts, received);
+        AccountId origin = pickAccount(accounts, byCurrency.get(paid), paid);
+        AccountId destination = pickAccount(accounts, byCurrency.get(received), received);
         // Amounts up to 2,000.00 against balances up to 5,000.00: enough collisions to exhaust funds.
         Money paidAmount = cents(paid, 1, 200_000);
         Money receivedAmount = cents(received, 1, 200_000);
@@ -89,7 +98,7 @@ public final class SettlementScenarioGenerator {
     }
 
     /** Mostly an existing account of the right currency; sometimes a rule 3 or rule 4 case. */
-    private AccountId pickAccount(List<Account> accounts, CurrencyCode currency) {
+    private AccountId pickAccount(List<Account> accounts, List<Account> sameCurrency, CurrencyCode currency) {
         int roll = random.nextInt(100);
         if (roll < 3) {
             return AccountId.of("ACC_UNKNOWN_%03d".formatted(random.nextInt(5)));
@@ -100,8 +109,75 @@ public final class SettlementScenarioGenerator {
         if (roll < 9) {
             return accounts.get(random.nextInt(accounts.size())).id(); // any currency: maybe a mismatch
         }
-        List<Account> sameCurrency = accounts.stream().filter(a -> a.currency().equals(currency)).toList();
         return sameCurrency.get(random.nextInt(sameCurrency.size())).id();
+    }
+
+    // --- F07 as files (spec §12.1) --------------------------------------------------------------
+
+    /** The client accounts of the scenario as a seed file (§6.3). */
+    public static byte[] seedJson(Scenario scenario) {
+        StringBuilder json = new StringBuilder("{ \"accounts\": [\n");
+        for (int i = 0; i < scenario.clientAccounts().size(); i++) {
+            Account account = scenario.clientAccounts().get(i);
+            json.append(i == 0 ? "" : ",\n").append(
+                    "  { \"account_id\": \"%s\", \"currency\": \"%s\", \"status\": \"%s\", \"initial_balance\": \"%s\" }"
+                            .formatted(account.id().value(), account.currency().value(), account.status(),
+                                    account.balance().orElseThrow().amount().toPlainString()));
+        }
+        return json.append("\n] }\n").toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * The settlements of the scenario as {@code fileCount} event files, named {@code F07-<seed>-<n>.json}
+     * in upload order; even files are a JSON array, odd files NDJSON (§6.2).
+     *
+     * <p>On top of the scenario, with their own fixed-seed random source (so the settlements stay
+     * those of {@link #generate}): about 40% of the events take one of 10 shared minutes, so many
+     * ties are broken by {@code event_id} (D4); about 5% are written again identical and about 3%
+     * again with the same {@code event_id} and another amount (D6, {@code payload_mismatch}), each
+     * copy in a random file, the same one or another.
+     */
+    public static Map<String, byte[]> eventFiles(Scenario scenario, int fileCount) {
+        Random random = new Random(scenario.seed() * 1_000_003L + 17);
+        List<List<String>> files = new ArrayList<>();
+        for (int f = 0; f < fileCount; f++) {
+            files.add(new ArrayList<>());
+        }
+        for (PostSettlement settlement : scenario.settlements()) {
+            Instant date = random.nextInt(10) < 4
+                    ? BASE_DATE.plusSeconds(36_000 + 60L * random.nextInt(10))
+                    : settlement.operationDate();
+            String event = eventJson(settlement.sourceEventId(), date, settlement.originAccountId(),
+                    settlement.originAmount(), settlement.destinationAccountId(), settlement.destinationAmount());
+            files.get(random.nextInt(fileCount)).add(event);
+            int copy = random.nextInt(100);
+            if (copy < 5) {
+                files.get(random.nextInt(fileCount)).add(event);
+            } else if (copy < 8) {
+                Money other = settlement.originAmount().plus(Money.of("0.01", settlement.originAmount().currency()));
+                files.get(random.nextInt(fileCount)).add(eventJson(settlement.sourceEventId(), date,
+                        settlement.originAccountId(), other, settlement.destinationAccountId(),
+                        settlement.destinationAmount()));
+            }
+        }
+        Map<String, byte[]> named = new LinkedHashMap<>();
+        for (int f = 0; f < fileCount; f++) {
+            String content = f % 2 == 0
+                    ? "[\n" + String.join(",\n", files.get(f)) + "\n]\n"
+                    : String.join("\n", files.get(f)) + "\n";
+            named.put("F07-%d-%02d.json".formatted(scenario.seed(), f), content.getBytes(StandardCharsets.UTF_8));
+        }
+        return named;
+    }
+
+    /** One CBMM event on a single line (§6.1), amounts as JSON numbers with their 2 decimals. */
+    private static String eventJson(String eventId, Instant date, AccountId origin, Money paid,
+            AccountId destination, Money received) {
+        return ("{\"event_id\":\"%s\",\"event_type\":\"cross_border_money_movement\",\"operation_date\":\"%s\","
+                + "\"origin\":{\"account_id\":\"%s\",\"currency\":\"%s\",\"amount\":%s},"
+                + "\"destination\":{\"account_id\":\"%s\",\"currency\":\"%s\",\"amount\":%s}}")
+                .formatted(eventId, date, origin.value(), paid.currency().value(), paid.amount().toPlainString(),
+                        destination.value(), received.currency().value(), received.amount().toPlainString());
     }
 
     private Money cents(CurrencyCode currency, int minInclusive, int maxInclusive) {

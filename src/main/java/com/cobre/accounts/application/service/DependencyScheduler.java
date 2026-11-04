@@ -143,7 +143,9 @@ public final class DependencyScheduler {
             return completions.take();
         } catch (InterruptedException e) {
             // With the interrupt flag set, closing the executor interrupts the jobs in flight
-            // (shutdownNow): their transactions roll back and their events stay undecided (D6).
+            // (shutdownNow). Only the transactions that have not committed yet roll back, and their
+            // events stay undecided; a job that already committed stays decided, and sending the
+            // files again reports it as a duplicate (D6).
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Interrupted while waiting for events of the load", e);
         }

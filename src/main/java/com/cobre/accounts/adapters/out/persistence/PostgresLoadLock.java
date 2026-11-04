@@ -49,7 +49,8 @@ public final class PostgresLoadLock implements LoadLock {
             connection.close();
             return Optional.empty();
         } catch (SQLException e) {
-            closeQuietly(connection, e);
+            // The lock may have been granted before the failure: never return that session to the pool.
+            abortQuietly(connection, e);
             throw new DataAccessResourceFailureException("Cannot take the load lock", e);
         }
     }
@@ -64,14 +65,23 @@ public final class PostgresLoadLock implements LoadLock {
         }
     }
 
-    private static void closeQuietly(Connection connection, Exception cause) {
+    /**
+     * Ends the session, so PostgreSQL drops any lock it holds, and closes the handle: on an aborted
+     * connection the pool's return check fails with 08003 and it evicts it.
+     */
+    private static void abortQuietly(Connection connection, Exception cause) {
         if (connection == null) {
             return;
         }
         try {
-            connection.close();
+            connection.abort(Runnable::run);
         } catch (SQLException e) {
             cause.addSuppressed(e);
+        }
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            log.debug("Closing the aborted connection of load lock {} failed", LOAD_LOCK_KEY, e);
         }
     }
 

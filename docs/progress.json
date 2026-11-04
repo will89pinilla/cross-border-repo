@@ -1,7 +1,7 @@
 {
   "deadline": "2026-11-05T08:00:00-05:00",
-  "next": "T08",
-  "last_session": "2026-11-04: T07 cerrada. Build verde (495 tests). Siguiente: T08; leer antes docs/notes/T08.md (snapshot en linesOf). Pregunta abierta de AC14 entre cargas en docs/notes/T07.md.",
+  "next": "T09",
+  "last_session": "2026-11-04: T08 cerrada. Build verde (506 tests). Siguiente: T09 (métricas, logs JSON, health); T10 tiene límites conocidos nuevos en docs/notes/T10.md (memoria, lock, 107,963 eventos).",
   "pending_decisions": [],
   "tasks": [
     {
@@ -133,9 +133,9 @@
       ],
       "priority": "should",
       "block": "mié 4 noche",
-      "status": "todo",
-      "passes": false,
-      "notes": "Si falta tiempo: oráculo + AC11/AC12 sí; benchmark con menos eventos. MEDIO y BAJOS de la segunda pasada de T06 (test del lock con Hikari). Detalle: docs/notes/T08.md"
+      "status": "done",
+      "passes": true,
+      "notes": "AC11/AC12 contra oráculo secuencial validado con F03/F05/F09; 11 tests nuevos; benchmark 826/2,602/5,425 ev/s (1/4/16); sin ALTOS. Detalle: docs/notes/T08.md"
     },
     {
       "id": "T09",

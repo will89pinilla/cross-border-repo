@@ -127,6 +127,11 @@ public final class ApiApp implements AutoCloseable {
     }
 
     public Response upload(List<Part> parts) {
+        return upload(parts, Duration.ofSeconds(60));
+    }
+
+    /** @param timeout for long loads, such as the benchmark's (spec §12.1) */
+    public Response upload(List<Part> parts, Duration timeout) {
         String boundary = "----cbmm" + UUID.randomUUID();
         ByteArrayOutputStream body = new ByteArrayOutputStream();
         for (Part part : parts) {
@@ -141,7 +146,7 @@ public final class ApiApp implements AutoCloseable {
         body.writeBytes(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
         return send(HttpRequest.newBuilder(base.resolve("/v1/event-files"))
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-                .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray())));
+                .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray())), timeout);
     }
 
     /** Uploads every file of {@code fixtures/<fixture>/loads/<load>}, by name. */
@@ -150,12 +155,12 @@ public final class ApiApp implements AutoCloseable {
     }
 
     public Response get(String pathAndQuery) {
-        return send(HttpRequest.newBuilder(base.resolve(pathAndQuery)).GET());
+        return send(HttpRequest.newBuilder(base.resolve(pathAndQuery)).GET(), Duration.ofSeconds(60));
     }
 
-    private Response send(HttpRequest.Builder request) {
+    private Response send(HttpRequest.Builder request, Duration timeout) {
         try {
-            HttpResponse<byte[]> response = http.send(request.timeout(Duration.ofSeconds(60)).build(),
+            HttpResponse<byte[]> response = http.send(request.timeout(timeout).build(),
                     HttpResponse.BodyHandlers.ofByteArray());
             return new Response(response.statusCode(),
                     response.headers().firstValue("Content-Type").orElse(""), response.body());

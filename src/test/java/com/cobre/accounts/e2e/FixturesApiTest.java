@@ -246,6 +246,35 @@ class FixturesApiTest {
         }
     }
 
+    /**
+     * §8.2: a later load can bring a line dated before those of an earlier load; /transactions puts
+     * it first, and the union of the reports, ordered like /transactions, agrees.
+     */
+    @Test
+    void AC14_aLaterLoadWithAnEarlierLineComesFirstInTheOrderedUnion() {
+        String first = """
+                [{"event_id": "cbmm_20250909_009401", "event_type": "cross_border_money_movement",
+                  "operation_date": "2025-09-09T12:00:00Z",
+                  "origin": {"account_id": "ACC123456789", "currency": "MXN", "amount": 100.00},
+                  "destination": {"account_id": "ACC987654321", "currency": "USD", "amount": 5.50}}]""";
+        String second = """
+                [{"event_id": "cbmm_20250909_009402", "event_type": "cross_border_money_movement",
+                  "operation_date": "2025-09-09T08:00:00Z",
+                  "origin": {"account_id": "ACC123456789", "currency": "MXN", "amount": 50.00},
+                  "destination": {"account_id": "ACC987654321", "currency": "USD", "amount": 2.75}}]""";
+        try (ApiApp app = ApiApp.start("classpath:fixtures/F01-case-event/seed.json")) {
+            JsonNode report1 = app.upload(List.of(ApiApp.Part.file("load1.json",
+                    first.getBytes(java.nio.charset.StandardCharsets.UTF_8)))).json();
+            JsonNode report2 = app.upload(List.of(ApiApp.Part.file("load2.json",
+                    second.getBytes(java.nio.charset.StandardCharsets.UTF_8)))).json();
+
+            JsonNode lines = app.get("/v1/accounts/ACC123456789/transactions").json().get("transactions");
+            assertThat(lines).extracting(line -> line.get("source_event_id").asString())
+                    .containsExactly("opening_ACC123456789", "cbmm_20250909_009402", "cbmm_20250909_009401");
+            assertQueriesMatchReports(app, List.of(report1, report2));
+        }
+    }
+
     private static byte[] fileBytes(String relativePath) {
         try {
             return java.nio.file.Files.readAllBytes(ApiApp.fixture(relativePath));
@@ -336,7 +365,16 @@ class FixturesApiTest {
                     withoutOpenings.add(line);
                 }
             });
-            assertThat(withoutOpenings).as("lines of %s", id).containsExactlyElementsOf(linesByAccount.get(id));
+            // §8.2: the union of the reports' lines, ordered like /transactions by posted_at,
+            // source_event_id and line number. The report has no line number, but an account has at
+            // most one line per event (same account on both legs is rejected; the two FX lines are
+            // on accounts of different currencies), so the first two keys already decide.
+            List<JsonNode> union = linesByAccount.get(id).stream()
+                    .sorted(java.util.Comparator
+                            .comparing((JsonNode line) -> java.time.Instant.parse(line.get("posted_at").asString()))
+                            .thenComparing(line -> line.get("source_event_id").asString()))
+                    .toList();
+            assertThat(withoutOpenings).as("lines of %s", id).containsExactlyElementsOf(union);
         }
     }
 }

@@ -39,5 +39,25 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 tasks.test {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags("benchmark")
+    }
+}
+
+// Spec §12.1: F07 with 100,000 events and 1,000 accounts at max-concurrency 1, 4 and 16, plus the
+// reader's heap at the limits of §6.2. Never part of `build`. Heap: -Pbenchmark.xmx=2g (default).
+tasks.register<Test>("benchmark") {
+    description = "Runs the F07 benchmark and the reader memory measure (spec §12.1, §6.2)."
+    group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform {
+        includeTags("benchmark")
+    }
+    maxHeapSize = providers.gradleProperty("benchmark.xmx").getOrElse("2g")
+    systemProperty("benchmark.reportDir", layout.buildDirectory.dir("reports/benchmark").get().asFile.absolutePath)
+    testLogging {
+        showStandardStreams = true
+    }
+    outputs.upToDateWhen { false }
 }

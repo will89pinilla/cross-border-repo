@@ -262,9 +262,11 @@ class DependencySchedulerTest {
         assertThatThrownBy(() -> new DependencyScheduler(0)).isInstanceOf(IllegalArgumentException.class);
     }
 
+    /** Fails the job, and so the test, if the latch is not released: a timeout is never ignored. */
     private static boolean await(CountDownLatch latch) {
         try {
-            return latch.await(5, TimeUnit.SECONDS);
+            assertThat(latch.await(5, TimeUnit.SECONDS)).as("latch released within 5 s").isTrue();
+            return true;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(e);

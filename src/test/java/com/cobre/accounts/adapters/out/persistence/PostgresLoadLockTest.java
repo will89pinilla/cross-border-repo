@@ -1,15 +1,19 @@
 package com.cobre.accounts.adapters.out.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.cobre.accounts.application.port.out.LoadLock;
 import com.cobre.accounts.support.FreshDatabase;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Optional;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
@@ -85,34 +89,81 @@ class PostgresLoadLockTest {
         assertThat(advisoryLocksHeld()).isZero();
     }
 
+    // --- Faults, through a real Hikari pool of one connection, as in the service ----------------
+
     /**
      * An unlock that fails on a live connection: the lease does not throw (the load already ended,
-     * its own exception must not be hidden) and aborts the connection, so PostgreSQL ends the
-     * session and drops its lock instead of the pool keeping it.
+     * its own exception must not be hidden) and aborts the connection. The pool evicts it and lends
+     * another session, and PostgreSQL drops the lock with the aborted one.
      */
     @Test
-    void aFailingUnlockAbortsTheConnectionAndDoesNotThrow() throws SQLException {
-        UnlockFaults faults = new UnlockFaults(dataSource, true);
-        LoadLock.Lease lease = new PostgresLoadLock(faults.dataSource()).tryAcquire().orElseThrow();
+    void aFailingUnlockAbortsTheConnectionAndThePoolLendsAnotherSession() throws SQLException {
+        Faults faults = new Faults(dataSource, Fault.UNLOCK_THROWS);
+        try (HikariDataSource pool = poolOfOne(faults.dataSource())) {
+            int pidBefore = backendPid(pool);
+            LoadLock.Lease lease = new PostgresLoadLock(pool).tryAcquire().orElseThrow();
 
-        lease.close();
+            lease.close();
 
-        assertThat(faults.aborted).isTrue();
-        assertThat(faults.physical.isClosed()).isTrue();
-        assertTheLockIsFreeOnceTheSessionEnds();
+            assertThat(faults.aborted).isTrue();
+            assertThat(backendPid(pool)).as("the pool evicted the aborted session").isNotEqualTo(pidBefore);
+            assertTheLockIsFreeOnceTheSessionEnds();
+        }
     }
 
-    /** An unlock that returns false (the session did not hold the lock) is also handled by aborting. */
+    /**
+     * An unlock that returns false while the session still holds the lock (the SQL is swapped for one
+     * that answers false and releases nothing): only the abort can free the lock here.
+     */
     @Test
-    void anUnlockReturningFalseAbortsTheConnectionAndDoesNotThrow() throws SQLException {
-        UnlockFaults faults = new UnlockFaults(dataSource, false);
-        LoadLock.Lease lease = new PostgresLoadLock(faults.dataSource()).tryAcquire().orElseThrow();
+    void anUnlockReturningFalseAbortsTheConnectionAndThePoolLendsAnotherSession() throws SQLException {
+        Faults faults = new Faults(dataSource, Fault.UNLOCK_RETURNS_FALSE);
+        try (HikariDataSource pool = poolOfOne(faults.dataSource())) {
+            int pidBefore = backendPid(pool);
+            LoadLock.Lease lease = new PostgresLoadLock(pool).tryAcquire().orElseThrow();
 
-        lease.close();
+            lease.close();
 
-        assertThat(faults.aborted).isTrue();
-        assertThat(faults.physical.isClosed()).isTrue();
-        assertTheLockIsFreeOnceTheSessionEnds();
+            assertThat(faults.aborted).isTrue();
+            assertThat(backendPid(pool)).as("the pool evicted the aborted session").isNotEqualTo(pidBefore);
+            assertTheLockIsFreeOnceTheSessionEnds();
+        }
+    }
+
+    /**
+     * {@code pg_try_advisory_lock} is granted but reading its answer fails with a state that is not a
+     * connection error (08): the session may hold the lock, so it is aborted, never returned to the
+     * pool still holding it.
+     */
+    @Test
+    void aGrantedLockWhoseAnswerCannotBeReadAbortsTheConnection() throws SQLException {
+        Faults faults = new Faults(dataSource, Fault.TRY_LOCK_ANSWER_FAILS);
+        try (HikariDataSource pool = poolOfOne(faults.dataSource())) {
+            int pidBefore = backendPid(pool);
+
+            assertThatThrownBy(() -> new PostgresLoadLock(pool).tryAcquire())
+                    .isInstanceOf(DataAccessResourceFailureException.class);
+
+            assertThat(faults.aborted).isTrue();
+            assertThat(backendPid(pool)).as("the pool evicted the aborted session").isNotEqualTo(pidBefore);
+            assertTheLockIsFreeOnceTheSessionEnds();
+        }
+    }
+
+    private static HikariDataSource poolOfOne(DataSource target) {
+        HikariConfig config = new HikariConfig();
+        config.setDataSource(target);
+        config.setMaximumPoolSize(1);
+        config.setPoolName("load-lock-test");
+        return new HikariDataSource(config);
+    }
+
+    private static int backendPid(DataSource pool) throws SQLException {
+        try (Connection connection = pool.getConnection(); Statement sql = connection.createStatement();
+                var rs = sql.executeQuery("SELECT pg_backend_pid()")) {
+            rs.next();
+            return rs.getInt(1);
+        }
     }
 
     /** A blocking lock with a timeout waits for the aborted backend to end, without sleeping. */
@@ -124,20 +175,18 @@ class PostgresLoadLockTest {
         }
     }
 
-    /**
-     * A DataSource whose connection breaks {@code pg_advisory_unlock}: it throws (the statement
-     * fails, the connection stays alive) or, before running it, drops the lock so it returns false.
-     */
-    private static final class UnlockFaults {
+    private enum Fault { UNLOCK_THROWS, UNLOCK_RETURNS_FALSE, TRY_LOCK_ANSWER_FAILS }
+
+    /** A DataSource whose connections break one statement of the lock and record {@code abort}. */
+    private static final class Faults {
 
         private final DataSource target;
-        private final boolean throwOnUnlock;
-        volatile Connection physical;
+        private final Fault fault;
         volatile boolean aborted;
 
-        UnlockFaults(DataSource target, boolean throwOnUnlock) {
+        Faults(DataSource target, Fault fault) {
             this.target = target;
-            this.throwOnUnlock = throwOnUnlock;
+            this.fault = fault;
         }
 
         DataSource dataSource() {
@@ -146,8 +195,7 @@ class PostgresLoadLockTest {
                         if (!method.getName().equals("getConnection")) {
                             return invoke(method, target, args);
                         }
-                        physical = target.getConnection();
-                        return connection(physical);
+                        return connection(target.getConnection());
                     });
         }
 
@@ -157,12 +205,19 @@ class PostgresLoadLockTest {
                         if (method.getName().equals("abort")) {
                             aborted = true;
                         }
-                        if (method.getName().equals("prepareStatement") && ((String) args[0]).contains("unlock")) {
-                            if (throwOnUnlock) {
+                        if (method.getName().equals("prepareStatement")) {
+                            String sql = (String) args[0];
+                            if (sql.contains("pg_advisory_unlock(") && fault == Fault.UNLOCK_THROWS) {
                                 throw new SQLException("canceling statement due to statement timeout", "57014");
                             }
-                            try (Statement drop = real.createStatement()) {
-                                drop.execute("SELECT pg_advisory_unlock_all()");
+                            if (sql.contains("pg_advisory_unlock(") && fault == Fault.UNLOCK_RETURNS_FALSE) {
+                                return real.prepareStatement("SELECT ?::bigint IS NULL");
+                            }
+                            if (sql.contains("pg_try_advisory_lock(") && fault == Fault.TRY_LOCK_ANSWER_FAILS) {
+                                try (Statement take = real.createStatement()) {
+                                    take.execute("SELECT pg_try_advisory_lock(" + PostgresLoadLock.LOAD_LOCK_KEY + ")");
+                                }
+                                throw new SQLException("could not read the answer", "XX000");
                             }
                         }
                         return invoke(method, real, args);

@@ -530,3 +530,46 @@ Decisiones de cierre de T07 (todo está también en docs/notes/T07.md, últimos 
 Después: build verde, docs/ai-usage/T07.md, progress.json y commit.
 </pasted_content id="e245">
 ```
+
+### 2026-11-04 15:25 · -
+
+```text
+Ya completé "Corregido a mano" en docs/ai-usage/T07.md. Además edité la spec §8.2 (la unión de AC14 se ordena por posted_at, source_event_id y número de línea), docs/harness-log.md, docs/notes/T08.md y la línea "T07" de los README de F02, F03, F04, F05, F06, F08 y F09. No cambies nada de eso. Corre ./gradlew build, haz un commit "docs: notas manuales de T07; spec §8.2 orden de la unión de AC14" con esos archivos y luego haz push de main (incluye 59d9594).
+```
+
+### 2026-11-04 15:30 · -
+
+```text
+/next-task
+```
+
+### 2026-11-04 15:36 · T08
+
+```text
+<pasted_content id="9916">
+Aprobado con este alcance (detalle en docs/notes/T08.md, último punto "Alcance de T08 acordado"):
+
+1. Oráculo: sí reutiliza EventFileReader y PostingService, pero implementa por su cuenta D4 y D6. Produce decisión por event_id, payload_mismatch de cada duplicado y saldo por cuenta; NO arma el JSON del reporte (T07 ya lo prueba). Valídalo contra los expected.json de F03, F05 y F09 (decisiones y final_balance), no de F01–F09.
+2. Generador: agrega fechas empatadas y duplicados (idénticos y con otro contenido, mismo archivo y otro). Sin INVALID_EVENT nuevos.
+3. Tests: AC11_AC12_concurrentLoadMatchesTheSequentialOracle y AC11_AC12_severalLoadsMatchTheOracle como propones, comparando contra la base y contra rejected/duplicates del reporte. Sin F07 por la API.
+4. Benchmark: por HTTP, como propones (100k eventos, 1,000 cuentas, 1/4/16, AC12 al final).
+5. Memoria: en T08, solo del lector: 1,000 archivos, 1,000,000 eventos, ~200 MB, sin base; heap antes y después con el -Xmx de la demo. Si no cabe, me propones el cambio de §6.2.
+6. Pendientes: AC14 con unión ordenada + caso de fecha anterior; tryAcquire con abort; test del lock con HikariDataSource; comentario de take; assert de await. NO: linesOf en una sentencia (va a límites conocidos en T10), BAJOS 1 y 5.
+
+Orden: oráculo y AC11/AC12 primero; luego pendientes; luego benchmark y memoria. Si a las 18:30 no está verde lo del punto 3, me avisas antes de seguir.
+</pasted_content id="9916">
+```
+
+### 2026-11-04 16:06 · T08
+
+```text
+/close-task
+```
+
+### 2026-11-04 16:11 · T08
+
+```text
+Sigue con 1, 3 y 4 ahora, y la segunda pasada acotada. El 5 no: el caso "primero según D4 ≠ primero leído" ya lo cubre F03 (302-Y con fecha anterior en el archivo que se lee después) y la deduplicación ocurre antes del scheduler.
+Los puntos 2, 6, 7 y 8 van a docs/notes/T10.md (sección de límites conocidos del README), no a progress.json: las notas de progress.json son cortas y el detalle va en las notas de la tarea. En el 7, que diga que si se pierde la sesión del lock otra carga podría empezar en paralelo: el dinero lo protegen la PK y el FOR UPDATE, pero el orden entre cargas (D4) ya no está garantizado.
+Después: T08.md, progress.json y commit.
+```
