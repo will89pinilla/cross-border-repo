@@ -1,0 +1,10 @@
+# The build stage compiles from the sources (see Dockerfile): never local outputs, history or secrets.
+build/
+.gradle/
+.git/
+.idea/
+.vscode/
+.env
+.env.*
+CLAUDE.local.md
+.claude/settings.local.json

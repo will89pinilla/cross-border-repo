@@ -23,6 +23,8 @@ dependencies {
     implementation(libs.spring.boot.starter.flyway)
     implementation(libs.flyway.postgresql)
     implementation(libs.springdoc.webmvc.ui)
+    implementation(libs.spring.boot.starter.actuator)
+    implementation(libs.micrometer.registry.prometheus)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.spring.boot.bom))
@@ -32,6 +34,11 @@ dependencies {
     testImplementation(libs.testcontainers.postgresql)
     testImplementation(libs.archunit.junit6)
     testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+// Fixed name for the Dockerfile (spec §11): it does not change with `version`.
+tasks.bootJar {
+    archiveFileName = "accounts-service.jar"
 }
 
 tasks.withType<JavaCompile>().configureEach {

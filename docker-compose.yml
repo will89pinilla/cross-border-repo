@@ -1,6 +1,27 @@
-# Local infrastructure. `docker compose down -v` wipes the data (only the human runs it).
-# The accounts-service container is added in a later task (spec §11, §13).
+# Local infrastructure (spec §11, §13). `docker compose down -v` wipes the data (only the human runs it).
+# `docker compose up -d --build` builds the accounts-service jar inside the image: only Docker is needed.
 services:
+  accounts-service:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/accounts
+      ACCOUNTS_OWNER_PASSWORD: ${ACCOUNTS_OWNER_PASSWORD:-accounts_owner_dev}
+      ACCOUNTS_APP_PASSWORD: ${ACCOUNTS_APP_PASSWORD:-accounts_app_dev}
+      # D7 and §13: accounts outside the seed are created with balance 0 when true.
+      CBMM_ACCOUNTS_AUTO_CREATE: ${CBMM_ACCOUNTS_AUTO_CREATE:-false}
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+
+
   postgres:
     image: postgres:18
     environment:

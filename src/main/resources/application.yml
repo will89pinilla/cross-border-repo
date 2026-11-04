@@ -18,6 +18,23 @@ spring:
       max-file-size: 50MB
       max-request-size: 200MB
 
+# Spec §11 (D15) and T07 security review: only health and prometheus; env, configprops or heapdump
+# would show the database passwords. Health says UP or DOWN, without details.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+
+# Spec §11: JSON logs in Spring Boot's ECS format; load_id and event_id come from the MDC.
+logging:
+  structured:
+    format:
+      console: ecs
+
 # Spec §6.2: 1,000 files per load. Each file is one multipart part; Tomcat's default is 50.
 server:
   tomcat:

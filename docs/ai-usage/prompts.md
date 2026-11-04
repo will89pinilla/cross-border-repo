@@ -573,3 +573,48 @@ Sigue con 1, 3 y 4 ahora, y la segunda pasada acotada. El 5 no: el caso "primero
 Los puntos 2, 6, 7 y 8 van a docs/notes/T10.md (sección de límites conocidos del README), no a progress.json: las notas de progress.json son cortas y el detalle va en las notas de la tarea. En el 7, que diga que si se pierde la sesión del lock otra carga podría empezar en paralelo: el dinero lo protegen la PK y el FOR UPDATE, pero el orden entre cargas (D4) ya no está garantizado.
 Después: T08.md, progress.json y commit.
 ```
+
+### 2026-11-04 16:19 · -
+
+```text
+/next-task
+```
+
+### 2026-11-04 17:01 · T09
+
+```text
+<pasted_content id="c078">
+Aprobado. Ya edité la spec §11: fila de Actuator y Micrometer (las que gestiona Spring Boot), code="none" en applied y duplicate, y la imagen de accounts-service. Fila en harness-log.
+
+1. §11: listo, sigue con el resto.
+2. Contenedor accounts-service: en T09. Detalle en docs/notes/T09.md (último punto): Dockerfile sobre amazoncorretto:25 que copia el jar de bootJar y arranca con java -Xmx2g -jar; en compose, depends_on postgres con service_healthy, DB_URL al servicio postgres, las mismas variables de contraseñas, CBMM_ACCOUNTS_AUTO_CREATE configurable (§13), puerto 8080 y healthcheck sobre /actuator/health si la imagen tiene curl o wget. Sin test automático del contenedor: al final corres los comandos de §13 y me muestras la salida.
+
+Para los logs usa OutputCaptureExtension, no appenders propios. Al agregar las dependencias en build.gradle.kts y en el catálogo te voy a pedir ver el diff.
+</pasted_content id="c078">
+```
+
+### 2026-11-04 17:14 · T09
+
+```text
+[Image #15]
+```
+
+### 2026-11-04 17:14 · T09
+
+```text
+/close-task
+```
+
+### 2026-11-04 17:17 · T09
+
+```text
+<pasted_content id="c078">
+MEDIO: opción (b), no (a). Con (a), quien clone el repo necesita Java 25 instalado; con (b) basta Docker. Ya edité la spec: §11 (Dockerfile de dos etapas) y §13 (docker compose up -d --build). Detalle en docs/notes/T09.md, último punto:
+- Etapa build sobre amazoncorretto:25: copia el repo (sin build/, .gradle/ ni .git/) y corre ./gradlew bootJar -x test --no-daemon.
+- Etapa final sobre amazoncorretto:25: solo el jar, java -Xmx2g -jar.
+- Ajusta .dockerignore. Que el jar no dependa de la versión escrita a mano (sin tomar el -plain).
+- Verificación a mano: borra build/, corre docker compose up -d --build y los comandos de §13; muéstrame la salida.
+BAJOS 2 y 3: sí, ahora. BAJO 4: a docs/notes/T10.md.
+Recuerda incluir en el commit docs/ai-usage/T08.md y mis cambios de la spec.
+</pasted_content id="c078">
+```

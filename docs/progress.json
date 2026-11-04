@@ -1,7 +1,7 @@
 {
   "deadline": "2026-11-05T08:00:00-05:00",
-  "next": "T09",
-  "last_session": "2026-11-04: T08 cerrada. Build verde (506 tests). Siguiente: T09 (métricas, logs JSON, health); T10 tiene límites conocidos nuevos en docs/notes/T10.md (memoria, lock, 107,963 eventos).",
+  "next": "T10",
+  "last_session": "2026-11-04: T09 cerrada. Build verde (530 tests); docker compose up -d --build levanta la demo solo con Docker. Siguiente: T10 (README y registro de IA); límites conocidos y notas de demo en docs/notes/T10.md.",
   "pending_decisions": [],
   "tasks": [
     {
@@ -148,9 +148,9 @@
       ],
       "priority": "should",
       "block": "jue 5 madrugada",
-      "status": "todo",
-      "passes": false,
-      "notes": ""
+      "status": "done",
+      "passes": true,
+      "notes": "§11 observabilidad en verde (24 tests nuevos); contenedor de dos etapas verificado con §13; sin ALTOS. BAJO abierto: S11_mdcClearedAfterException no verifica file/position. Detalle: docs/ai-usage/T09.md"
     },
     {
       "id": "T10",

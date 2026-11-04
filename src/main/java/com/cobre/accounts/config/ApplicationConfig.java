@@ -15,7 +15,10 @@ import com.cobre.accounts.application.service.LoadEventFilesService;
 import com.cobre.accounts.application.service.PostSettlementService;
 import com.cobre.accounts.domain.model.EntryId;
 import com.cobre.accounts.domain.service.PostingService;
+import com.cobre.accounts.config.observability.ObservedLoadEventFiles;
+import com.cobre.accounts.config.observability.ObservedPostSettlement;
 import com.zaxxer.hikari.HikariDataSource;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -47,11 +50,13 @@ class ApplicationConfig {
 
     /**
      * Spec §7.4: {@code 1 <= max-concurrency < maximum-pool-size}. Strictly below: besides one
-     * connection per event in flight, the load lock holds one for the whole load.
+     * connection per event in flight, the load lock holds one for the whole load. Wrapped for the
+     * load metrics of spec §11.
      */
     @Bean
     LoadEventFilesUseCase loadEventFilesUseCase(PostSettlementUseCase postSettlement, LoadLock loadLock,
-            AccountReadModel readModel, CbmmProperties properties, DataSource dataSource) {
+            AccountReadModel readModel, CbmmProperties properties, DataSource dataSource,
+            MeterRegistry meterRegistry) {
         int maxConcurrency = properties.processing().maxConcurrency();
         if (maxConcurrency < 1) {
             throw new IllegalStateException("cbmm.processing.max-concurrency must be at least 1, got " + maxConcurrency);
@@ -61,14 +66,17 @@ class ApplicationConfig {
                     + ") must be below spring.datasource.hikari.maximum-pool-size (" + hikari.getMaximumPoolSize()
                     + "): the load lock holds one more connection");
         }
-        return new LoadEventFilesService(postSettlement, loadLock, readModel, maxConcurrency, Clock.systemUTC(),
-                UUID::randomUUID);
+        return new ObservedLoadEventFiles(new LoadEventFilesService(postSettlement, loadLock, readModel,
+                maxConcurrency, Clock.systemUTC(), UUID::randomUUID), meterRegistry);
     }
 
+    /** Wrapped for spec §11: load_id and event_id in the logs of the posting, and its timer. */
     @Bean
     PostSettlementUseCase postSettlementUseCase(AccountRepository accounts, JournalRepository journal,
             SettlementDecisionRepository decisions, UnitOfWork unitOfWork, PostingService postingService,
-            DomainEventPublisher publisher) {
-        return new PostSettlementService(accounts, journal, decisions, unitOfWork, postingService, publisher);
+            DomainEventPublisher publisher, MeterRegistry meterRegistry) {
+        return new ObservedPostSettlement(
+                new PostSettlementService(accounts, journal, decisions, unitOfWork, postingService, publisher),
+                meterRegistry);
     }
 }

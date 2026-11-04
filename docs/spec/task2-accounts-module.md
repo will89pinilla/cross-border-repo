@@ -513,7 +513,8 @@ Cada criterio es un test automatizado. Salvo que se diga otra cosa, hay una sola
 | ArchUnit | 1.5.0, con el módulo `archunit-junit6` |
 | springdoc-openapi | Línea 3.x (`springdoc-openapi-starter-webmvc-ui`), la que corresponde a Spring Boot 4; fijada en el version catalog. Trae Jackson 2 de forma transitiva (por `swagger-core`) solo para generar el documento OpenAPI; el código del servicio usa únicamente Jackson 3 (`tools.jackson.*`) |
 | Pruebas de propiedades | JUnit 6 nativo, sin librería adicional: `@ParameterizedTest` con un generador de semilla fija y varias semillas. Se descartó jqwik porque se basa en JUnit Platform 1.x y Spring Boot 4 usa JUnit 6 |
-| Infraestructura local | Docker Compose: PostgreSQL y `accounts-service` |
+| Spring Boot Actuator y Micrometer (`spring-boot-starter-actuator`, `micrometer-registry-prometheus`) | Las que gestiona Spring Boot (D15) |
+| Infraestructura local | Docker Compose: PostgreSQL y `accounts-service`. La imagen de `accounts-service` se arma con un Dockerfile de dos etapas sobre `amazoncorretto:25`: la primera compila el jar con el wrapper de Gradle (`bootJar`, sin tests) y la segunda solo lo copia y arranca con `-Xmx2g`. Así un clon limpio levanta la demo solo con Docker, sin Java instalado; sin dependencias nuevas |
 
 Cualquier versión se fija exacta en el version catalog el primer día y solo cambia actualizando este documento.
 
@@ -570,7 +571,7 @@ Observabilidad (D15):
 
 | Métrica | Etiquetas |
 | --- | --- |
-| `cbmm_events_total` | `result` = `applied`, `rejected` o `duplicate`; `code` para los rechazos |
+| `cbmm_events_total` | `result` = `applied`, `rejected` o `duplicate`; `code` = el código del rechazo, o `none` en `applied` y `duplicate` (Prometheus exige las mismas etiquetas en todas las series) |
 | `cbmm_load_duration_seconds` | — |
 | `cbmm_event_posting_seconds` | — |
 | `cbmm_files_total` | `status` |
@@ -643,7 +644,7 @@ Los logs son JSON con el formato estructurado de Spring Boot (`logging.structure
 ## 13. Demo
 
 ```bash
-docker compose up -d
+docker compose up -d --build   # la primera vez compila el jar dentro de la imagen
 curl -F "files=@F01.json" http://localhost:8080/v1/event-files
 curl http://localhost:8080/v1/accounts/ACC123456789/balance
 curl "http://localhost:8080/v1/accounts/ACC123456789/transactions?limit=100&offset=0"
