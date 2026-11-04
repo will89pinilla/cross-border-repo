@@ -18,16 +18,16 @@ class ArchitectureTest {
             .that().resideInAPackage("com.cobre.accounts.domain..")
             .should().dependOnClassesThat().resideInAnyPackage(
                     "org.springframework..", "java.sql..", "javax.sql..", "com.cobre.accounts.adapters..")
-            // TODO(T04): quitar cuando existan clases en el paquete (lo hace el humano)
-            .allowEmptyShould(true);
+            .because("spec §3.3 y §11: domain es Java puro. Si necesitas algo de fuera, define un puerto en application/port/out.");
+
+            
 
     @ArchTest
     static final ArchRule applicationDependsOnlyOnDomain = noClasses()
             .that().resideInAPackage("com.cobre.accounts.application..")
             .should().dependOnClassesThat().resideInAnyPackage(
                     "org.springframework..", "com.cobre.accounts.adapters..")
-            // TODO(T04): quitar cuando existan clases en el paquete (lo hace el humano)
-            .allowEmptyShould(true);
+            .because("spec §11: application solo usa domain y sus puertos. El wiring de Spring va en config/.");
 
     /** Single exception (spec §11): the REST controller hands uploaded files to the file reader. */
     @ArchTest
@@ -37,6 +37,5 @@ class ArchitectureTest {
             .ignoreDependency(
                     resideInAPackage("com.cobre.accounts.adapters.in.rest"),
                     resideInAPackage("com.cobre.accounts.adapters.in.file"))
-            // TODO(T04): quitar cuando existan clases en el paquete (lo hace el humano)
-            .allowEmptyShould(true);
+            .because("spec §11: un adaptador no depende de otro; la única excepción es adapters.in.rest → adapters.in.file.");;
 }
