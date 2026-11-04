@@ -230,7 +230,7 @@ Estructura definida por el caso:
 | `operation_date` | Obligatorio; ISO 8601 con zona (`Z` u offset); se guarda como `Instant` en UTC |
 | `origin`, `destination` | Obligatorios, cada uno con `account_id`, `currency` y `amount` |
 | `currency` | Tres letras mayúsculas incluidas en `cbmm.currencies` (por defecto `MXN,USD`) |
-| `amount` | Número JSON o texto decimal, mayor que 0, con 2 decimales como máximo una vez quitados los ceros finales (`10.500` es válido; `10.005` no). Se lee como `BigDecimal` desde el texto del JSON, sin pasar por `double` |
+| `amount` | Número JSON o texto decimal, mayor que 0, con 2 decimales como máximo una vez quitados los ceros finales (`10.500` es válido; `10.005` no) y con 17 dígitos enteros como máximo, el límite de `numeric(19,2)`. Se lee como `BigDecimal` desde el texto del JSON, sin pasar por `double` |
 | Monedas | `origin.currency` distinta de `destination.currency` |
 | Campos adicionales | Se ignoran |
 
@@ -266,6 +266,7 @@ Al arrancar, el módulo lee `cbmm.seed.path` (por defecto `classpath:seed/accoun
 - Por cada cuenta de la semilla que no existe: se crea como `CLIENT` y, si `initial_balance` es mayor que 0, se registra un asiento de apertura con `source_event_id = opening_<account_id>`: débito en `COBRE_FUNDING_<moneda>` y crédito en la cuenta (D9). Los asientos de apertura no generan SettlementDecision, porque no son eventos CBMM.
 - Una cuenta que ya existe no se modifica. Volver a arrancar no duplica nada.
 - `status` acepta `ACTIVE`, `BLOCKED` y `CLOSED`.
+- Un `account_id` con prefijo `COBRE_` en la semilla es un error de configuración: el servicio no arranca y lo indica en el log.
 - Para empezar de cero se borra el volumen de la base (`docker compose down -v`); no existe un endpoint que borre datos (D13).
 
 ## 7. Procesamiento
@@ -290,8 +291,8 @@ Un evento recibe un solo código de rechazo: el de la primera regla que falla, e
 | # | Regla | Código | Detalle |
 | --- | --- | --- | --- |
 | 1 | `event_type` es `cross_border_money_movement` | `UNSUPPORTED_EVENT_TYPE` | — |
-| 2 | Campos obligatorios presentes y con formato válido | `INVALID_EVENT` | `MALFORMED_JSON`, `MISSING_FIELD`, `INVALID_DATE`, `UNSUPPORTED_CURRENCY`, `NON_POSITIVE_AMOUNT`, `TOO_MANY_DECIMALS`, `SAME_CURRENCY` |
-| 3 | La cuenta origen existe, y luego la destino (con D7 apagado) | `ACCOUNT_NOT_FOUND` | `ORIGIN` o `DESTINATION` |
+| 2 | Campos obligatorios presentes y con formato válido | `INVALID_EVENT` | `MALFORMED_JSON`, `MISSING_FIELD`, `INVALID_DATE`, `UNSUPPORTED_CURRENCY`, `NON_POSITIVE_AMOUNT`, `TOO_MANY_DECIMALS`, `SAME_CURRENCY`, `AMOUNT_TOO_LARGE` (más de 17 dígitos enteros), `FIELD_TOO_LONG` (`account_id` > 64 o `event_id` > 128 caracteres) |
+| 3 | La cuenta origen existe y es `CLIENT`, y luego la destino (con D7 apagado). Una cuenta de Cobre (`COBRE_*`) no se puede usar desde un evento y se trata como inexistente | `ACCOUNT_NOT_FOUND` | `ORIGIN` o `DESTINATION` |
 | 4 | La moneda de cada pata coincide con la de su cuenta, origen primero | `CURRENCY_MISMATCH` | `ORIGIN` o `DESTINATION` |
 | 5 | Las dos cuentas están `ACTIVE`, origen primero | `ACCOUNT_INACTIVE` | `ORIGIN` o `DESTINATION` |
 | 6 | La cuenta origen tiene saldo suficiente | `INSUFFICIENT_FUNDS` | — |
@@ -299,8 +300,10 @@ Un evento recibe un solo código de rechazo: el de la primera regla que falla, e
 - Las reglas 1 y 2 se evalúan al leer el archivo; las 3 a 6, dentro de la transacción del evento. Un evento que falló la regla 1 o 2 igual pasa por su transacción, para guardar su decisión `REJECTED` (D6).
 - Antes de cualquier regla, un `event_id` que ya tiene decisión se reporta como duplicado, sin importar su contenido.
 - Un rechazo no modifica ningún saldo ni crea líneas.
-- Un evento sin `event_id` se rechaza con `INVALID_EVENT` / `MISSING_FIELD`, se reporta por archivo y posición, y no guarda decisión, porque no tiene identidad.
-- Con D7 encendido, la regla 3 no rechaza: crea la cuenta desconocida como `CLIENT`, `ACTIVE`, saldo 0 y la moneda de su pata, dentro de la misma transacción. Si era la cuenta origen, la regla 6 la rechaza.
+- Si origen y destino son la misma cuenta, las monedas de las patas difieren (regla 2), así que la regla 4 la rechaza con `CURRENCY_MISMATCH` / `DESTINATION`.
+- Un evento sin `event_id` se rechaza con `INVALID_EVENT` / `MISSING_FIELD`, se reporta por archivo y posición, y no guarda decisión, porque no tiene identidad. Lo mismo vale para un `event_id` de más de 128 caracteres (`FIELD_TOO_LONG`): no se puede guardar como identidad.
+- Con D7 encendido, la regla 3 no rechaza: crea la cuenta desconocida como `CLIENT`, `ACTIVE`, saldo 0 y la moneda de su pata, dentro de la misma transacción. Si era la cuenta origen, la regla 6 la rechaza. Un evento rechazado no crea cuentas: la cuenta solo se guarda si el evento se aplica (un rechazo no tiene efectos, igual que con saldos y líneas). D7 nunca crea una cuenta con prefijo `COBRE_`: esa pata se rechaza con `ACCOUNT_NOT_FOUND`.
+- Por qué las cuentas de Cobre se tratan como inexistentes: son internas y no direccionables desde fuera. No tienen saldo guardado ni validación de fondos (D10), así que usarlas como origen permitiría mover dinero sin respaldo. Responder `ACCOUNT_NOT_FOUND` tampoco revela que existen.
 
 ### 7.3 Flujo de una carga
 
@@ -513,7 +516,8 @@ accounts-service/
 ├── src/main/java/com/cobre/accounts/
 │   ├── domain/
 │   │   ├── model/          Account, AccountType, AccountStatus, Money, CurrencyCode,
-│   │   │                   JournalEntry, EntryLine, Direction, SettlementDecision, RejectionCode
+│   │   │                   JournalEntry, EntryLine, Direction, SettlementDecision, RejectionCode,
+│   │   │                   PostSettlement, DomainInvariantException
 │   │   ├── service/        PostingService
 │   │   └── event/          EntriesPosted, PostingRejected
 │   ├── application/

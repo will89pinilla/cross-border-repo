@@ -122,3 +122,93 @@ Luego corre ./gradlew build, muéstrame el resumen y continúa con el resto de /
 (docs/ai-usage/T01.md, progress.json y el commit).
 </pasted_content id="d338">
 ```
+
+### 2026-11-03 19:31 · -
+
+```text
+/next-task
+```
+
+### 2026-11-03 19:43 · T02
+
+```text
+<pasted_content id="2a00">
+OK al plan, incluido PostingInvariantPropertyTest.
+
+Respuesta a tu pregunta: ya actualicé la spec §7.2.
+- Regla 3: la cuenta debe existir y ser CLIENT. Una cuenta COBRE_* usada como origin o destination
+  se rechaza con ACCOUNT_NOT_FOUND / ORIGIN o DESTINATION (es interna y no direccionable).
+- Con D7 encendido, NUNCA se crea una cuenta con prefijo COBRE_: esa pata también es ACCOUNT_NOT_FOUND.
+  (La creación automática es de T05, pero deja la regla en PostingService si te toca decidirla aquí.)
+Agrega tests: rule3_cobreAccountAsOrigin_isNotFound y rule3_cobreAccountAsDestination_isNotFound.
+
+Ajustes:
+1. El generador de secuencias del test de propiedades va en src/test/java/.../support/,
+   pensado para que T08 lo amplíe (F07 y el oráculo), no para duplicarlo.
+2. Los rechazos de negocio son valores (PostingResult.Rejected). Las excepciones son solo
+   para violaciones de invariantes, es decir, errores de programación.
+   PostingService valida la regla 6 ANTES de llamar a Account.debit.
+3. En el test de precedencia, incluye una cuenta inexistente que además tenga moneda incorrecta:
+   debe salir ACCOUNT_NOT_FOUND, no CURRENCY_MISMATCH.
+
+Adelante: test primero por cada clase y ./gradlew build al final.
+</pasted_content id="2a00">
+```
+
+### 2026-11-03 20:08 · T02
+
+```text
+<pasted_content id="2a00">
+Los dos pendientes ya están en la spec §7.2: un evento rechazado no crea cuentas (D7),
+y FIELD_TOO_LONG es un nuevo detalle de INVALID_EVENT (account_id > 64, event_id > 128;
+un event_id demasiado largo no guarda decisión). FIELD_TOO_LONG se implementa en T03 y la regla de D7 en T05.
+Agrega ambas a las notes de esas tareas en progress.json.
+Nuevo hook guard-bash.py: desde ahora, crea y edita archivos solo con Edit/Write, nunca por Bash.
+</pasted_content id="2a00">
+```
+
+### 2026-11-03 20:12 · T02
+
+```text
+<pasted_content id="2a00">
+Sí, quita PostingResult.Rejected.createdAccounts() ahora, dentro de T02:
+- Rejected solo lleva el código y el detalle del rechazo; las cuentas creadas por D7 viajan solo en Posted.
+- Ajusta rule3_autoCreate_unknownOrigin_isInsufficientFunds y el test de propiedades.
+- Simplifica la nota de T05 en progress.json: "Guardar solo las cuentas de Posted.createdAccounts()".
+- Revisa que ningún Javadoc siga hablando de la decisión de T05.
+
+Nota: ajusté guard-bash.py y ya permite scripts de solo lectura (json.load, json.tool).
+Solo bloquea escrituras sobre src/, la spec y el harness.
+</pasted_content id="2a00">
+```
+
+### 2026-11-03 20:18 · T02
+
+```text
+/close-task
+```
+
+### 2026-11-03 20:22 · T02
+
+```text
+<pasted_content id="2a00">
+OK. Ya actualicé la spec (§6.1, §6.3, §7.2 y §11) con M3, B2, B5 y B7.
+
+Hazlo ahora, dentro de T02:
+- B3: los 3 tests de precedencia.
+- B4: el Javadoc de Posted (la cuenta de D7 se inserta una vez, con el saldo de updatedAccounts).
+- M3 en el dominio: Money rechaza una precisión mayor que 19 (invariante, DomainInvariantException), con test.
+  El rechazo como INVALID_EVENT/AMOUNT_TOO_LARGE (más de 17 dígitos enteros) es del lector: anótalo en T03.
+- B2: agrega el test sameAccountBothLegs_isCurrencyMismatchDestination.
+
+Notas en progress.json:
+- T03: AMOUNT_TOO_LARGE (17 dígitos enteros, casos límite 17/18).
+- T04 y T05 (M2): el orden de los locks lo fija Java con String.compareTo Y el SQL usa
+  ORDER BY account_id COLLATE "C". Las dos cosas siempre, con un test de ids con mayúsculas y minúsculas.
+- T04 y T07 (M spec): las lecturas usan un modelo de lectura propio, sin EntryLine.
+- T05 y T06 (M1): la cuenta creada por D7 se inserta con su saldo final, sin UPDATE; D5 serializa por los ids del evento.
+- T04 (B5): la semilla con un id COBRE_* hace fallar el arranque, con un mensaje claro.
+
+Luego ./gradlew build 
+</pasted_content id="2a00">
+```

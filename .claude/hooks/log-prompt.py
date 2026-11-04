@@ -16,6 +16,12 @@ prompt = (data.get("prompt") or "").strip()
 if not prompt:
     sys.exit(0)
 
+# Los reportes de subagentes y las notificaciones de tareas en segundo plano llegan como turnos
+# de usuario, pero no son prompts del humano: no se registran.
+NOT_HUMAN = ("<agent-message", "<task-notification", "[Subagent hand-back]")
+if prompt.startswith(NOT_HUMAN[:2]) or NOT_HUMAN[2] in prompt[:300]:
+    sys.exit(0)
+
 root = os.environ.get("CLAUDE_PROJECT_DIR") or data.get("cwd") or os.getcwd()
 task = "-"
 try:
