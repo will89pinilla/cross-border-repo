@@ -222,6 +222,21 @@ class SeedLoaderTest {
         assertThat(count("account")).isZero();
     }
 
+    /** Spec §6.3: the account_id of the seed follows the printable-ASCII rule of §6.1. */
+    @ParameterizedTest(name = "non printable ASCII account_id {0}")
+    @ValueSource(strings = {"ACC 1", "ACC\\t1", "ACCñ", "💰", "A\\uD800", "A\\uDC00", "ACC\\u007F"})
+    void nonPrintableAsciiAccountIdIsAConfigurationErrorAndNothingIsWritten(String accountId) {
+        assertThatThrownBy(() -> load("""
+                { "accounts": [
+                  { "account_id": "ACC_OK", "currency": "MXN", "status": "ACTIVE", "initial_balance": "1.00" },
+                  { "account_id": "%s", "currency": "MXN", "status": "ACTIVE", "initial_balance": "1.00" }
+                ] }""".formatted(accountId)))
+                .isInstanceOf(SeedConfigurationException.class)
+                .hasMessageContaining("test-seed.json")
+                .hasMessageContaining("printable ASCII");
+        assertThat(count("account")).isZero();
+    }
+
     @Test
     void currencyOutsideConfiguredCurrenciesIsAConfigurationError() {
         assertThatThrownBy(() -> load("""

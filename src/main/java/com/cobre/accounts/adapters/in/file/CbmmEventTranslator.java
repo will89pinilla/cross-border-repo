@@ -29,6 +29,8 @@ public final class CbmmEventTranslator {
     static final String EVENT_TYPE = "cross_border_money_movement";
     static final int MAX_EVENT_ID_LENGTH = 128;
     static final int MAX_ACCOUNT_ID_LENGTH = 64;
+    /** Prefix of the opening entries' {@code source_event_id} (spec §6.3); reserved for them. */
+    static final String RESERVED_EVENT_ID_PREFIX = "opening_";
 
     private final Set<String> supportedCurrencies;
 
@@ -41,21 +43,28 @@ public final class CbmmEventTranslator {
 
     /** A line or array element that is not a JSON object (§6.2). */
     ReadEvent malformed(String fileName, int position) {
-        return new ReadEvent(fileName, position, null, null, false, invalid(InvalidEventDetail.MALFORMED_JSON));
+        return new ReadEvent(fileName, position, null, null, false, null, invalid(InvalidEventDetail.MALFORMED_JSON));
     }
 
-    ReadEvent translate(String fileName, int position, JsonNode event) {
+    /**
+     * @param sourceText the text of {@code event} in the file, for its {@code payload_hash} (§9);
+     *     unused when {@code event} is not an object
+     */
+    ReadEvent translate(String fileName, int position, JsonNode event, String sourceText) {
         Objects.requireNonNull(event, "event");
         if (!event.isObject()) {
             return malformed(fileName, position);
         }
+        String payloadHash = PayloadHash.of(sourceText);
         JsonNode eventIdNode = present(event, "event_id");
         String eventId = eventIdNode != null && eventIdNode.isString() ? eventIdNode.stringValue() : null;
-        boolean hasIdentity = eventId != null && !eventId.isBlank() && length(eventId) <= MAX_EVENT_ID_LENGTH;
+        // Spec §7.2: a non-ASCII id cannot be stored faithfully (pgjdbc maps lone surrogates to '?').
+        boolean hasIdentity = eventId != null && !eventId.isBlank() && isPrintableAscii(eventId)
+                && length(eventId) <= MAX_EVENT_ID_LENGTH;
         Instant operationDate = parseDate(present(event, "operation_date"));
 
         ReadEvent.Outcome outcome = evaluate(event, eventIdNode, eventId, operationDate);
-        return new ReadEvent(fileName, position, eventId, operationDate, hasIdentity, outcome);
+        return new ReadEvent(fileName, position, eventId, operationDate, hasIdentity, payloadHash, outcome);
     }
 
     private ReadEvent.Outcome evaluate(JsonNode event, JsonNode eventIdNode, String eventId, Instant operationDate) {
@@ -68,11 +77,15 @@ public final class CbmmEventTranslator {
         if (eventIdNode == null) {
             return invalid(InvalidEventDetail.MISSING_FIELD);
         }
-        if (eventId == null) {
+        // Spec §7.2: INVALID_FORMAT (not text or not printable ASCII), FIELD_TOO_LONG, RESERVED_EVENT_ID.
+        if (eventId == null || !isPrintableAscii(eventId)) {
             return invalid(InvalidEventDetail.INVALID_FORMAT);
         }
         if (length(eventId) > MAX_EVENT_ID_LENGTH) {
             return invalid(InvalidEventDetail.FIELD_TOO_LONG);
+        }
+        if (eventId.startsWith(RESERVED_EVENT_ID_PREFIX)) {
+            return invalid(InvalidEventDetail.RESERVED_EVENT_ID);
         }
         if (present(event, "operation_date") == null) {
             return invalid(InvalidEventDetail.MISSING_FIELD);
@@ -114,7 +127,7 @@ public final class CbmmEventTranslator {
         if (accountId == null) {
             return new LegFailed(InvalidEventDetail.MISSING_FIELD);
         }
-        if (!accountId.isString()) {
+        if (!accountId.isString() || !isPrintableAscii(accountId.stringValue())) {
             return new LegFailed(InvalidEventDetail.INVALID_FORMAT);
         }
         if (length(accountId.stringValue()) > MAX_ACCOUNT_ID_LENGTH) {
@@ -170,6 +183,20 @@ public final class CbmmEventTranslator {
         } catch (DateTimeParseException e) {
             return null;
         }
+    }
+
+    /**
+     * Spec §6.1: only printable ASCII without spaces ({@code !} to {@code ~}), so the Java order of
+     * {@code AccountId} and PostgreSQL's {@code COLLATE "C"} always agree (D12).
+     */
+    static boolean isPrintableAscii(String value) {
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c < '!' || c > '~') {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** Characters as PostgreSQL varchar counts them (code points), not UTF-16 units. */

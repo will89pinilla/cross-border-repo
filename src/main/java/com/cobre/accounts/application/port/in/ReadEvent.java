@@ -16,10 +16,19 @@ import java.util.Objects;
  *     text. Ordering treats null as the empty text (§7.3)
  * @param operationDate null when absent or invalid; ordering treats it as the oldest date (§7.3)
  * @param hasIdentity the {@code event_id} is usable as identity, so a decision can be stored (D6).
- *     False when it is absent, blank, not text or longer than 128 characters (§7.2)
+ *     False when it is absent, blank, not text, not printable ASCII or longer than 128 characters
+ *     (§7.2)
+ * @param payloadHash {@code payload_hash} of spec §9 (SHA-256 hex of the canonical JSON); null only
+ *     when the event is not a JSON object ({@code MALFORMED_JSON})
  */
 public record ReadEvent(
-        String fileName, int position, String eventId, Instant operationDate, boolean hasIdentity, Outcome outcome) {
+        String fileName,
+        int position,
+        String eventId,
+        Instant operationDate,
+        boolean hasIdentity,
+        String payloadHash,
+        Outcome outcome) {
 
     public ReadEvent {
         Objects.requireNonNull(fileName, "fileName");
@@ -29,6 +38,9 @@ public record ReadEvent(
         }
         if (hasIdentity && eventId == null) {
             throw new IllegalArgumentException("An event with identity has an event id");
+        }
+        if (hasIdentity && payloadHash == null) {
+            throw new IllegalArgumentException("An event with identity has a payload hash: " + eventId);
         }
         if (outcome instanceof Translated translated && !translated.command().sourceEventId().equals(eventId)) {
             throw new IllegalArgumentException("Translated event id differs: " + eventId);

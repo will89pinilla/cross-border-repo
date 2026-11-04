@@ -364,3 +364,53 @@ Adelante: test primero y ./gradlew build al final.
 ```text
 ! git add docs/ && git commit -m "docs: notas manuales de T04; spec §6.3 ids ASCII en la semilla" && git push
 ```
+
+### 2026-11-04 10:13 · -
+
+```text
+/next-task
+```
+
+### 2026-11-04 10:39 · T05
+
+```text
+<pasted_content id="5b91">
+Ya actualicé la spec con tus 4 propuestas, tal como las planteaste:
+§7.2: orden INVALID_FORMAT → FIELD_TOO_LONG → RESERVED_EVENT_ID; un event_id no ASCII no tiene identidad;
+un event_id con prefijo opening_ sí guarda REJECTED/RESERVED_EVENT_ID.
+§9: payload_hash = SHA-256 hex del JSON canónico (claves ordenadas, números tal como vienen en el texto).
+
+OK al plan de T05. Adelante: test primero por criterio, fixtures con la skill add-fixture
+(expected.json calculado a mano desde la spec) y ./gradlew build al final.
+</pasted_content id="5b91">
+```
+
+### 2026-11-04 11:25 · T05
+
+```text
+<pasted_content id="5b91">
+Revisé los README de F01, F02, F08 y el recalculado de F04: los cálculos y los resultados esperados
+coinciden con la spec.
+Ya fijé en la spec §8.1 los nombres JSON de rejected (event_id, file, position, code, detail,
+decision_stored) y de duplicates (event_id, file, position, original_decision, payload_mismatch).
+Actualiza docs/notes/T07.md: ya no falta el formato; los expected.json de F02 y F08 se escriben en T07
+con esos nombres.
+</pasted_content id="5b91">
+```
+
+### 2026-11-04 11:28 · T05
+
+```text
+<pasted_content id="5b91">
+Tenías razón con el aviso. Cambié la spec §8.1: event_id en el reporte es el texto recibido cuando viene como
+texto, aunque no tenga identidad; es null solo si falta o no es texto. decision_stored indica si se guardó
+decisión. Actualiza el aviso en docs/notes/T07.md: el reporte NO escribe null cuando hasIdentity() es false;
+usa ReadEvent.eventId() tal como llegó.
+</pasted_content id="5b91">
+```
+
+### 2026-11-04 11:32 · T05
+
+```text
+/close-task
+```

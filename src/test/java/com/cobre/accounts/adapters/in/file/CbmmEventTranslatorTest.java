@@ -256,7 +256,7 @@ class CbmmEventTranslatorTest {
         assertThat(file.status()).isEqualTo(FileStatus.PROCESSED);
         Map<String, ReadEvent.Outcome> outcomes = file.events().stream()
                 .collect(Collectors.toMap(ReadEvent::eventId, ReadEvent::outcome));
-        assertThat(outcomes).hasSize(10);
+        assertThat(outcomes).hasSize(16);
         assertThat(outcomes.get("cbmm_20250909_000402")).isEqualTo(invalid("NON_POSITIVE_AMOUNT"));
         assertThat(outcomes.get("cbmm_20250909_000403")).isEqualTo(invalid("NON_POSITIVE_AMOUNT"));
         assertThat(outcomes.get("cbmm_20250909_000404")).isEqualTo(invalid("TOO_MANY_DECIMALS"));
@@ -270,7 +270,11 @@ class CbmmEventTranslatorTest {
                 .isEqualTo(amount("100.00", MXN));
         assertThat(((ReadEvent.Translated) outcomes.get("cbmm_20250909_000410")).command().originAmount())
                 .isEqualTo(amount("10.50", MXN));
-        assertThat(file.events()).extracting(ReadEvent::position).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        // AC05–AC07 (T05): they pass rules 1 and 2; rules 3 to 5 reject them in their transaction.
+        assertThat(java.util.stream.IntStream.rangeClosed(411, 416).mapToObj(n -> outcomes.get("cbmm_20250909_000" + n)))
+                .allSatisfy(outcome -> assertThat(outcome).isInstanceOf(ReadEvent.Translated.class));
+        assertThat(file.events()).extracting(ReadEvent::position)
+                .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
     }
 
     // --- AC09 -------------------------------------------------------------------------------
@@ -348,14 +352,98 @@ class CbmmEventTranslatorTest {
                 .isEqualTo(invalid("FIELD_TOO_LONG"));
     }
 
+    /** Spec §7.2: in event_id and account_id, the format (printable ASCII) goes before the length. */
     @Test
-    void fieldTooLong_countsCharactersNotUtf16Units() {
+    void precedence_nonAsciiIdIsInvalidFormatBeforeFieldTooLong() {
         String emoji = "💰";
 
-        assertThat(read(event().origin("account_id", text(emoji.repeat(64)))).outcome())
-                .isInstanceOf(ReadEvent.Translated.class);
         assertThat(read(event().origin("account_id", text(emoji.repeat(65)))).outcome())
-                .isEqualTo(invalid("FIELD_TOO_LONG"));
+                .isEqualTo(invalid("INVALID_FORMAT"));
+        assertThat(read(event().set("event_id", text("é".repeat(129)))).outcome())
+                .isEqualTo(invalid("INVALID_FORMAT"));
+    }
+
+    // --- Printable ASCII ids and the reserved prefix (§6.1, §7.2) ---------------------------
+
+    /** JSON texts (escapes included) that are not printable ASCII without spaces. */
+    private static final String[] NON_PRINTABLE_ASCII = {
+        "\"ACC 1\"", "\"ACC\\t1\"", "\"ACCñ\"", "\"💰\"", "\"A\\uD800\"", "\"A\\uDC00\"", "\"ACC\\u007F\"", "\"ACC\\u0000\""
+    };
+
+    static String[] nonPrintableAscii() {
+        return NON_PRINTABLE_ASCII;
+    }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.MethodSource("nonPrintableAscii")
+    void invalidFormat_accountIdThatIsNotPrintableAscii(String accountId) {
+        assertThat(read(event().origin("account_id", accountId)).outcome()).isEqualTo(invalid("INVALID_FORMAT"));
+        assertThat(read(event().destination("account_id", accountId)).outcome())
+                .isEqualTo(invalid("INVALID_FORMAT"));
+    }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.MethodSource("nonPrintableAscii")
+    void invalidFormat_eventIdThatIsNotPrintableAscii_withoutIdentity(String eventId) {
+        ReadEvent read = read(event().set("event_id", eventId));
+
+        assertThat(read.outcome()).isEqualTo(invalid("INVALID_FORMAT"));
+        assertThat(read.hasIdentity()).isFalse();
+    }
+
+    @Test
+    void loneSurrogatesAreNotTwoDistinctIdentities() {
+        ReadEvent high = read(event().set("event_id", "\"A\\uD800\""));
+        ReadEvent low = read(event().set("event_id", "\"A\\uDC00\""));
+
+        assertThat(high.hasIdentity()).isFalse();
+        assertThat(low.hasIdentity()).isFalse();
+    }
+
+    @Test
+    void printableAsciiEdgesAreAccepted() {
+        String edges = "!~" + "#$%&'()*+,-./:;<=>?@[\\\\]^_`{|}";
+
+        ReadEvent read = read(event().set("event_id", text("e" + edges)).origin("account_id", text("A" + edges)));
+
+        assertThat(read.outcome()).isInstanceOf(ReadEvent.Translated.class);
+        assertThat(read.hasIdentity()).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"opening_ACC123456789", "opening_", "opening_x"})
+    void reservedEventId_openingPrefixIsRejectedWithIdentity(String eventId) {
+        ReadEvent read = read(event().set("event_id", text(eventId)));
+
+        assertThat(read.outcome()).isEqualTo(invalid("RESERVED_EVENT_ID"));
+        assertThat(read.hasIdentity()).isTrue();
+        assertThat(read.eventId()).isEqualTo(eventId);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Opening_x", "OPENING_x", "openingx", "x_opening_", "cbmm_opening_1"})
+    void reservedEventId_onlyTheExactPrefixIsReserved(String eventId) {
+        assertThat(read(event().set("event_id", text(eventId))).outcome()).isInstanceOf(ReadEvent.Translated.class);
+    }
+
+    @Test
+    void precedence_eventIdChecksAreFormatThenLengthThenReservedPrefix() {
+        ReadEvent tooLong = read(event().set("event_id", text("opening_" + "x".repeat(121))));
+        ReadEvent nonAscii = read(event().set("event_id", text("opening_ñ")));
+
+        assertThat(tooLong.outcome()).isEqualTo(invalid("FIELD_TOO_LONG"));
+        assertThat(tooLong.hasIdentity()).isFalse();
+        assertThat(nonAscii.outcome()).isEqualTo(invalid("INVALID_FORMAT"));
+        assertThat(nonAscii.hasIdentity()).isFalse();
+    }
+
+    @Test
+    void precedence_reservedEventIdWinsOverLaterFields() {
+        ReadEvent read = read(event().set("event_id", text("opening_ACC1"))
+                .set("operation_date", text("yesterday"))
+                .origin("account_id", text("ACC ñ")));
+
+        assertThat(read.outcome()).isEqualTo(invalid("RESERVED_EVENT_ID"));
     }
 
     @Test

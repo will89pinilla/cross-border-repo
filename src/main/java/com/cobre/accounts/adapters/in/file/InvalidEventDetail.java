@@ -4,6 +4,8 @@ package com.cobre.accounts.adapters.in.file;
 enum InvalidEventDetail {
     MALFORMED_JSON,
     MISSING_FIELD,
+    /** {@code event_id} with the {@code opening_} prefix of the opening entries (spec §6.3). */
+    RESERVED_EVENT_ID,
     INVALID_FORMAT,
     INVALID_DATE,
     UNSUPPORTED_CURRENCY,

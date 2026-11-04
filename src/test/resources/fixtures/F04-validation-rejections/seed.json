@@ -1,6 +1,7 @@
 {
   "accounts": [
     { "account_id": "ACC123456789", "currency": "MXN", "status": "ACTIVE", "initial_balance": "200000.00" },
-    { "account_id": "ACC987654321", "currency": "USD", "status": "ACTIVE", "initial_balance": "0.00" }
+    { "account_id": "ACC987654321", "currency": "USD", "status": "ACTIVE", "initial_balance": "0.00" },
+    { "account_id": "ACC555000009", "currency": "MXN", "status": "BLOCKED", "initial_balance": "1000.00" }
   ]
 }

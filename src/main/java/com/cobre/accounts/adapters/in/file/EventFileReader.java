@@ -91,8 +91,11 @@ public final class EventFileReader {
                 if (token == null) {
                     return EventFile.unreadable(fileName);
                 }
+                // The element's source text, for payload_hash (§9): offsets are chars of `text`.
+                int start = (int) parser.currentTokenLocation().getCharOffset();
                 JsonNode element = mapper.readTree(parser);
-                events.add(translator.translate(fileName, events.size(), element));
+                int end = (int) parser.currentTokenLocation().getCharOffset() + 1;
+                events.add(translator.translate(fileName, events.size(), element, text.substring(start, end)));
             }
             if (parser.nextToken() != null) {
                 return EventFile.unreadable(fileName);
@@ -116,7 +119,7 @@ public final class EventFileReader {
         if (moreContent) {
             return readNdjson(fileName, text);
         }
-        return new EventFile(fileName, FileStatus.PROCESSED, List.of(translator.translate(fileName, 0, first)));
+        return new EventFile(fileName, FileStatus.PROCESSED, List.of(translator.translate(fileName, 0, first, text)));
     }
 
     private static boolean hasMoreContent(JsonParser parser) {
@@ -137,7 +140,7 @@ public final class EventFileReader {
             JsonNode node = parseLine(line);
             events.add(node == null || !node.isObject()
                     ? translator.malformed(fileName, position)
-                    : translator.translate(fileName, position, node));
+                    : translator.translate(fileName, position, node, line));
         }
         return new EventFile(fileName, FileStatus.PROCESSED, events);
     }

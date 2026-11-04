@@ -1,7 +1,7 @@
 {
   "deadline": "2026-11-05T08:00:00-05:00",
-  "next": "T05",
-  "last_session": "2026-11-04: T04 cerrada. Build verde (296 tests). Siguiente: T05; antes, regla ASCII y RESERVED_EVENT_ID en el traductor (docs/notes/T05.md).",
+  "next": "T06",
+  "last_session": "2026-11-04: T05 cerrada. Build verde (366 tests). Siguiente: T06; leer antes docs/notes/T06.md (BAJOS de la revisión de T05 y la regla de no anidar UnitOfWork).",
   "pending_decisions": [],
   "tasks": [
     {
@@ -82,9 +82,9 @@
       ],
       "priority": "must",
       "block": "mié 4 tarde",
-      "status": "todo",
-      "passes": false,
-      "notes": "Notas de revisiones y decisiones de la spec para esta tarea. Detalle: docs/notes/T05.md"
+      "status": "done",
+      "passes": true,
+      "notes": "AC01/02/05/06/07/15 en verde contra PG18; 70 tests nuevos; ALTO corregido (misma cuenta en las dos patas). F02/F08 expected.json en T07. Detalle: docs/notes/T05.md"
     },
     {
       "id": "T06",
@@ -104,7 +104,7 @@
       "block": "mié 4 tarde",
       "status": "todo",
       "passes": false,
-      "notes": "La más riesgosa: empieza con el scheduler en secuencial y luego paraleliza. M1: el grafo D5 usa los account_id del evento (existan o no en la base), así dos eventos sobre la misma cuenta nueva de D7 se serializan."
+      "notes": "La más riesgosa: scheduler secuencial primero; M1 (grafo D5 por account_id del evento); no anidar UnitOfWork; BAJOS de la revisión de T05. Detalle: docs/notes/T06.md"
     },
     {
       "id": "T07",

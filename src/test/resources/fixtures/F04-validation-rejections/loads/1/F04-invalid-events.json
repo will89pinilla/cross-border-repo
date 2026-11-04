@@ -67,5 +67,47 @@
     "operation_date": "2025-09-09T09:30:00Z",
     "origin": { "account_id": "ACC123456789", "currency": "MXN", "amount": "10.500" },
     "destination": { "account_id": "ACC987654321", "currency": "USD", "amount": 0.58 }
+  },
+  {
+    "event_id": "cbmm_20250909_000411",
+    "event_type": "cross_border_money_movement",
+    "operation_date": "2025-09-09T09:40:00Z",
+    "origin": { "account_id": "ACC987654321", "currency": "MXN", "amount": 10.00 },
+    "destination": { "account_id": "ACC123456789", "currency": "USD", "amount": 0.55 }
+  },
+  {
+    "event_id": "cbmm_20250909_000412",
+    "event_type": "cross_border_money_movement",
+    "operation_date": "2025-09-09T09:50:00Z",
+    "origin": { "account_id": "ACC404000001", "currency": "MXN", "amount": 10.00 },
+    "destination": { "account_id": "ACC987654321", "currency": "USD", "amount": 0.55 }
+  },
+  {
+    "event_id": "cbmm_20250909_000413",
+    "event_type": "cross_border_money_movement",
+    "operation_date": "2025-09-09T10:00:00Z",
+    "origin": { "account_id": "ACC123456789", "currency": "MXN", "amount": 10.00 },
+    "destination": { "account_id": "ACC404000002", "currency": "USD", "amount": 0.55 }
+  },
+  {
+    "event_id": "cbmm_20250909_000414",
+    "event_type": "cross_border_money_movement",
+    "operation_date": "2025-09-09T10:10:00Z",
+    "origin": { "account_id": "COBRE_FX_POSITION_MXN", "currency": "MXN", "amount": 10.00 },
+    "destination": { "account_id": "ACC987654321", "currency": "USD", "amount": 0.55 }
+  },
+  {
+    "event_id": "cbmm_20250909_000415",
+    "event_type": "cross_border_money_movement",
+    "operation_date": "2025-09-09T10:20:00Z",
+    "origin": { "account_id": "ACC555000009", "currency": "MXN", "amount": 10.00 },
+    "destination": { "account_id": "ACC987654321", "currency": "USD", "amount": 0.55 }
+  },
+  {
+    "event_id": "cbmm_20250909_000416",
+    "event_type": "cross_border_money_movement",
+    "operation_date": "2025-09-09T10:30:00Z",
+    "origin": { "account_id": "ACC987654321", "currency": "USD", "amount": 0.55 },
+    "destination": { "account_id": "ACC555000009", "currency": "MXN", "amount": 10.00 }
   }
 ]

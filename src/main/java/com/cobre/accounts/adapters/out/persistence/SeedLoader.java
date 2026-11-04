@@ -157,6 +157,10 @@ public final class SeedLoader {
             throw new SeedConfigurationException(
                     where + ": account_id must have 1 to " + MAX_ACCOUNT_ID_LENGTH + " characters");
         }
+        if (!isPrintableAscii(rawId)) {
+            throw new SeedConfigurationException(where + ": account_id must be printable ASCII without spaces"
+                    + " (spec §6.1, §6.3)");
+        }
         AccountId id = AccountId.of(rawId);
         where = "Seed " + source + ", account " + id;
         if (id.isCobreReserved()) {
@@ -182,6 +186,21 @@ public final class SeedLoader {
                     where + ": status " + rawStatus + " is not ACTIVE, BLOCKED or CLOSED", e);
         }
         return new SeedAccount(id, currency, status, initialBalance(node, currency, where));
+    }
+
+    /**
+     * Same rule as the event translator (spec §6.1): {@code !} to {@code ~} only. Repeated here
+     * because one adapter cannot depend on another (spec §11). With ASCII only, the 64 limit in
+     * UTF-16 units equals the translator's count in code points.
+     */
+    private static boolean isPrintableAscii(String value) {
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c < '!' || c > '~') {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** Text or JSON number, read as BigDecimal and never rounded (D11); 0 or more. */
