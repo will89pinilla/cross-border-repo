@@ -618,3 +618,53 @@ BAJOS 2 y 3: sí, ahora. BAJO 4: a docs/notes/T10.md.
 Recuerda incluir en el commit docs/ai-usage/T08.md y mis cambios de la spec.
 </pasted_content id="c078">
 ```
+
+### 2026-11-04 17:36 · -
+
+```text
+/next-task
+```
+
+### 2026-11-04 17:38 · T10
+
+```text
+<pasted_content id="168a">
+OK al plan, con estos ajustes (detalle en docs/notes/T10.md, último punto; ya edité §13 y harness-log):
+
+1. Capturas: opción (c). Yo las copio a docs/ai-usage/screenshots/ con los nombres TXX.png. Antes del commit final, borra la referencia de cada captura que no exista.
+2. Semilla del panel sin reconstruir la imagen (§13): en docker-compose.yml, CBMM_SEED_PATH: ${CBMM_SEED_PATH:-classpath:seed/accounts.json} y volumen ./demo:/demo:ro. Crea demo/ con un README corto (dónde dejar los archivos y la semilla del panel, formato §6.3) y .gitkeep. En el ensayo prueba también arrancar con una semilla en demo/.
+3. docs/ai-usage/README.md: agrega una sección "Casos de uso de IA", porque el enunciado pide documentar en qué casos se usó: especificación, plan por tarea, implementación con test primero, revisores, cálculo a mano de fixtures verificado por el humano, triage de hallazgos y harness. Cada caso con un ejemplo concreto y el TXX.md donde está.
+4. README: un bloque inicial "Evaluar en 3 comandos".
+
+Para el ensayo, avísame antes y yo corro docker compose down -v.
+</pasted_content id="168a">
+```
+
+### 2026-11-04 17:48 · T10
+
+```text
+Listo, corrí docker compose down -v. Sigue con la ronda 1.
+```
+
+### 2026-11-04 17:50 · T10
+
+```text
+Listo, corrí docker compose down -v. Sigue con la ronda 2.
+```
+
+### 2026-11-04 17:52 · T10
+
+```text
+/close-task
+```
+
+### 2026-11-04 17:57 · T10
+
+```text
+<pasted_content id="168a">
+Corrige los 7. En el 2, deja los dos caminos así:
+(a) semilla propia: docker compose down -v → copiar la semilla a demo/seed.json → CBMM_SEED_PATH=file:/demo/seed.json docker compose up -d --wait → curl con los archivos;
+(b) cuentas nuevas en 0 (D7): docker compose down -v → CBMM_ACCOUNTS_AUTO_CREATE=true docker compose up -d --wait → curl con los archivos.
+Sin segunda pasada (solo documentación). Después: T10.md, progress.json y commit.
+</pasted_content id="168a">
+```

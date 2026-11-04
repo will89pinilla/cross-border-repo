@@ -12,6 +12,10 @@ services:
       ACCOUNTS_APP_PASSWORD: ${ACCOUNTS_APP_PASSWORD:-accounts_app_dev}
       # D7 and §13: accounts outside the seed are created with balance 0 when true.
       CBMM_ACCOUNTS_AUTO_CREATE: ${CBMM_ACCOUNTS_AUTO_CREATE:-false}
+      # §13: the panel's seed without rebuilding the image, e.g. CBMM_SEED_PATH=file:/demo/seed.json.
+      CBMM_SEED_PATH: ${CBMM_SEED_PATH:-classpath:seed/accounts.json}
+    volumes:
+      - ./demo:/demo:ro
     ports:
       - "8080:8080"
     healthcheck:

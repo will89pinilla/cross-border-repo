@@ -1,7 +1,7 @@
 {
   "deadline": "2026-11-05T08:00:00-05:00",
-  "next": "T10",
-  "last_session": "2026-11-04: T09 cerrada. Build verde (530 tests); docker compose up -d --build levanta la demo solo con Docker. Siguiente: T10 (README y registro de IA); límites conocidos y notas de demo en docs/notes/T10.md.",
+  "next": null,
+  "last_session": "2026-11-04: T10 cerrada; backlog completo. Build verde (530 tests); demo ensayada con docker compose. Pendiente humano: capturas, 'Corregido a mano' de T09/T10, borrar demo/seed.json y push antes de 07:30.",
   "pending_decisions": [],
   "tasks": [
     {
@@ -161,9 +161,9 @@
       ],
       "priority": "must",
       "block": "jue 5 madrugada",
-      "status": "todo",
-      "passes": false,
-      "notes": "Último push antes de 07:30."
+      "status": "done",
+      "passes": true,
+      "notes": "README con guion ensayado (F01 y F04 IDENTICAL a expected), demo/ con CBMM_SEED_PATH, casos de uso de IA; 7 hallazgos de doc corregidos. Detalle: docs/ai-usage/T10.md"
     }
   ]
 }

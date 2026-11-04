@@ -651,7 +651,7 @@ curl "http://localhost:8080/v1/accounts/ACC123456789/transactions?limit=100&offs
 docker compose down -v   # vuelve al estado inicial
 ```
 
-Con los archivos que entregue el panel: se cargan todos en una sola llamada (`-F "files=@a.json" -F "files=@b.json"`). Si traen cuentas que no están en la semilla, se reinicia con `CBMM_ACCOUNTS_AUTO_CREATE=true` o se agregan a la semilla.
+Con los archivos que entregue el panel: se cargan todos en una sola llamada (`-F "files=@a.json" -F "files=@b.json"`). Si traen cuentas que no están en la semilla, se reinicia con `CBMM_ACCOUNTS_AUTO_CREATE=true` o con una semilla propia sin reconstruir la imagen: el compose monta `./demo` en `/demo` (solo lectura) y pasa `CBMM_SEED_PATH` (por defecto `classpath:seed/accounts.json`), así que `docker compose down -v` y luego `CBMM_SEED_PATH=file:/demo/seed.json docker compose up -d` arranca con `demo/seed.json` (formato de §6.3).
 
 ## 14. Fuera de alcance
 

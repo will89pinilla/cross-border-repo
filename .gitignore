@@ -15,5 +15,10 @@
 CLAUDE.local.md
 .claude/settings.local.json
 
+# Archivos y semilla del panel (§13): demo/ se versiona vacía, solo con su README
+/demo/*
+!/demo/README.md
+!/demo/.gitkeep
+
 # Sistema
 .DS_Store
