@@ -414,3 +414,9 @@ usa ReadEvent.eventId() tal como llegó.
 ```text
 /close-task
 ```
+
+### 2026-11-04 11:44 · -
+
+```text
+! git add docs/ && git commit -m "docs(ai-usage): notas manuales de T05" && git push
+```
