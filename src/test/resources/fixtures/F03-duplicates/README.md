@@ -54,4 +54,4 @@ Saldos y líneas sin cambio: los de la tabla de la carga 1, `entry_line` sigue e
 ## Estado
 
 - T06: `LoadEventFilesServiceIntegrationTest.AC03_...` y `AC17_...` contra PG18.
-- T07: `expected-1.json` y `expected-2.json` desde estas tablas, y el test por la API.
+- T07: ✅ `expected-1.json` y `expected-2.json` escritos desde esta tabla (revisados a mano); `FixturesApiTest` compara el reporte sin `metadata` por la API y verifica AC14.

@@ -456,7 +456,7 @@ Con D6, en el paso 4 el módulo encuentra la decisión `REJECTED` de E1, lo repo
 Las consultas leen el estado confirmado y funcionan también durante una carga.
 
 - Los errores responden `application/problem+json` (RFC 9457) con una propiedad `code` (`NO_FILES`, `LOAD_IN_PROGRESS`, `PAYLOAD_TOO_LARGE`, `ACCOUNT_NOT_FOUND`, `INVALID_PAGINATION`, `INTERNAL_ERROR`). Un 500 no expone la traza ni el mensaje de la excepción. Los errores propios de Spring MVC (405, 415 y rutas inexistentes) responden con su ProblemDetail estándar, sin `code`: `code` solo identifica los errores de esta API. Un multipart mal formado responde 400 `NO_FILES` (no se pudo obtener ningún archivo); más archivos que el límite de §6.2 responde 413 `PAYLOAD_TOO_LARGE`.
-- AC14, "coinciden con el reporte": `/balance` es igual al `final_balance` del último reporte en que aparece la cuenta, y las líneas de `/transactions` sin las aperturas (`source_event_id` con prefijo `opening_`) son, en el mismo orden, la unión de las líneas de esa cuenta en los reportes de todas las cargas.
+- AC14, "coinciden con el reporte": `/balance` es igual al `final_balance` del último reporte en que aparece la cuenta, y las líneas de `/transactions` sin las aperturas (`source_event_id` con prefijo `opening_`) son la unión de las líneas de esa cuenta en los reportes de todas las cargas, ordenada como `/transactions`: por `posted_at`, `source_event_id` y número de línea (una carga posterior puede traer líneas con fecha anterior, que quedan antes).
 
 ### 8.3 Eventos de dominio
 

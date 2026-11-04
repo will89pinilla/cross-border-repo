@@ -39,4 +39,4 @@ Reportes esperados (sin `metadata`):
 ## Estado
 
 - T06: `LoadEventFilesServiceIntegrationTest.AC04_...` contra PG18.
-- T07: `expected-1.json`, `expected-2.json` y `expected-3.json` desde estas tablas, y el test por la API.
+- T07: ✅ `expected-1.json`, `expected-2.json` y `expected-3.json` escritos desde esta tabla (revisados a mano); `FixturesApiTest` compara el reporte sin `metadata` por la API y verifica AC14.

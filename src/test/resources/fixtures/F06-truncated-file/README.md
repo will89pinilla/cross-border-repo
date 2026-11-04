@@ -26,4 +26,4 @@ Invariante MXN: 198499.75 + 1500.25 − 200000.00 = 0.00. USD: 82.60 − 82.60 =
 ## Estado
 
 - T03: el lector se prueba con estos archivos (`EventFileReaderTest.AC13_fixtureF06...`).
-- T07: falta `expected.json` (reporte sin `metadata`), escrito desde esta tabla, y el test por la API.
+- T07: ✅ `expected.json` escritos desde esta tabla (revisados a mano); `FixturesApiTest` compara el reporte sin `metadata` por la API y verifica AC14.

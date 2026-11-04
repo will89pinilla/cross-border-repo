@@ -60,4 +60,4 @@ Invariante MXN: 199889.50 + 1000.00 + 110.50 − 201000.00 = 0.00. USD: 6.08 −
 
 - T03: el lector y el traductor se prueban con este archivo (`CbmmEventTranslatorTest.AC08_fixtureF04...`).
 - T05: reglas 3 a 5 con este archivo y esta semilla (`PostSettlementServiceIntegrationTest`, AC05–AC07).
-- T07: falta `expected.json` (reporte sin `metadata`), escrito desde esta tabla, y el test por la API.
+- T07: ✅ `expected.json` escritos desde esta tabla (revisados a mano); `FixturesApiTest` compara el reporte sin `metadata` por la API y verifica AC14.

@@ -45,4 +45,4 @@ COBRE_FX_POSITION_MXN, COBRE_FX_POSITION_USD, cada una con su línea de 801. `re
 ## Estado
 
 - T05: `PostSettlementServiceIntegrationTest.AC06_...` y `AC15_...` verifican los dos modos en la base.
-- T07: escribir `expected-d7-off.json` y `expected-d7-on.json` desde estas tablas, cuando quede fijo el formato de cada elemento de `rejected`, y el test por la API.
+- T07: ✅ `expected-d7-off.json` y `expected-d7-on.json` escritos desde esta tabla (revisados a mano); `FixturesApiTest` compara el reporte sin `metadata` por la API y verifica AC14.

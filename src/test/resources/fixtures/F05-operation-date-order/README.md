@@ -43,4 +43,4 @@ COBRE_FX_POSITION_USD; las de fondeo no tienen líneas en esta carga), con los s
 ## Estado
 
 - T06: `LoadEventFilesServiceIntegrationTest.AC10_...` verifica orden, saldos e invariante contra PG18.
-- T07: escribir `expected.json` desde esta tabla y el test por la API.
+- T07: ✅ `expected.json` escritos desde esta tabla (revisados a mano); `FixturesApiTest` compara el reporte sin `metadata` por la API y verifica AC14.

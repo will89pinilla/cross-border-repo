@@ -30,4 +30,4 @@ Reporte esperado (sin `metadata`): `files` = [F02.json, PROCESSED, 1]; `summary`
 ## Estado
 
 - T05: `PostSettlementServiceIntegrationTest.AC02_...` verifica el rechazo, la decisión guardada y que nada cambió en la base.
-- T07: escribir `expected.json` desde esta tabla, cuando quede fijo el formato de cada elemento de `rejected` (§8.1 lista sus campos, no sus nombres en JSON), y el test por la API.
+- T07: ✅ `expected.json` escritos desde esta tabla (revisados a mano); `FixturesApiTest` compara el reporte sin `metadata` por la API y verifica AC14.
